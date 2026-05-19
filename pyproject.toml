@@ -1,0 +1,47 @@
+[build-system]
+requires = ["setuptools>=59", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "assignmentsignal"
+version = "0.9.15"
+description = "AI-native assignment platform for professors and TAs — capture how students think"
+readme = "README.md"
+license = "MIT"
+requires-python = ">=3.10"
+keywords = ["assignment", "education", "grading", "claude-code", "ai", "developer-experience"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Education",
+    "Topic :: Software Development :: Testing",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+]
+dependencies = []  # Zero hard dependencies — uses stdlib only
+
+[project.optional-dependencies]
+dev = ["pytest>=8", "ruff", "mypy"]
+
+[project.scripts]
+assignment = "assignment.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/NikhilSKashyap/assignmentsignal"
+Issues = "https://github.com/NikhilSKashyap/assignmentsignal/issues"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["assignment*"]
+
+[tool.setuptools.package-data]
+"assignment.skills.assignment" = ["SKILL.md"]
+"assignment.skills.submit" = ["SKILL.md"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "I"]
