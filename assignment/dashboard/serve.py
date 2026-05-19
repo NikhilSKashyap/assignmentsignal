@@ -463,19 +463,19 @@ def _build_wizard_screen2_html(error: str = "") -> str:
   <div class="wizard-card">
     <div class="wizard-step">Step 2 of 3</div>
     <h2>Grading setup</h2>
-    <p>To auto-grade submissions, enter your Anthropic API key. Grading runs locally — your key is never sent to the relay.</p>
+    <p>To auto-grade submissions, enter your OpenAI API key. Grading runs locally — your key is never sent to the relay.</p>
     {err}
     <form method="POST" action="/setup/api-key">
-      <label for="api_key">Anthropic API key</label>
+      <label for="api_key">OpenAI API key</label>
       <input id="api_key" name="api_key" type="password" class="wizard-field"
-             placeholder="sk-ant-..." autocomplete="off" autofocus>
+             placeholder="sk-..." autocomplete="off" autofocus>
       <div class="wizard-btns">
         <button type="submit" name="action" value="save" class="btn btn-primary">Save →</button>
         <button type="submit" name="action" value="skip" class="btn">Skip for now</button>
       </div>
     </form>
     <p class="wizard-hint">Get your key at
-      <a href="https://console.anthropic.com/settings/keys" target="_blank">console.anthropic.com →</a>
+      <a href="https://platform.openai.com/api-keys" target="_blank">platform.openai.com →</a>
     </p>
   </div>
 </div>
@@ -2454,7 +2454,7 @@ class DashboardHandler(http.server.BaseHTTPRequestHandler):
             action = body.get("action", "save")
             api_key = body.get("api_key", "").strip()
             if action == "save" and api_key:
-                _save_config({"anthropic_api_key": api_key})
+                _save_config({"openai_api_key": api_key})
             self._send_html(_build_create_assignment_html(in_wizard=True))
 
         elif path == "/create-assignment":
@@ -2529,7 +2529,7 @@ class DashboardHandler(http.server.BaseHTTPRequestHandler):
 
                 from assignment.core.grader import grade_session, GradingError, _get_api_key
                 if not _get_api_key():
-                    raise GradingError("No Anthropic API key configured.")
+                    raise GradingError("No OpenAI API key configured.")
 
                 if get_relay_url():
                     _ensure_local_cache(code, cid)
@@ -2723,7 +2723,7 @@ class DashboardHandler(http.server.BaseHTTPRequestHandler):
 
 def _run_grading(code: str, cid: str = ""):
     """
-    Grade a session using the Anthropic API.
+    Grade a session using the OpenAI API.
 
     Relay mode:  downloads events + manifest to local cache, grades locally,
                  then POSTs the result to the relay via transport.post_action().
@@ -2743,13 +2743,13 @@ def _run_grading(code: str, cid: str = ""):
                 "summary": (
                     "⚠ No API key configured. "
                     "Run: assignment configure-api-key  "
-                    "or set ANTHROPIC_API_KEY environment variable."
+                    "or set OPENAI_API_KEY environment variable."
                 ),
                 "standout_moments": [],
                 "concerns": [],
                 "status": "no_api_key",
             }, indent=2))
-        raise GradingError("No Anthropic API key. Run: assignment configure-api-key")
+        raise GradingError("No OpenAI API key. Run: assignment configure-api-key")
 
     # In relay mode, ensure session files are cached locally before grading
     if get_relay_url():

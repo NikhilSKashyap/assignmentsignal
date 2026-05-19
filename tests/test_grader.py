@@ -176,18 +176,18 @@ class TestGetApiKey:
 
     def test_env_var_takes_priority(self, tmp_path):
         config = tmp_path / "config.json"
-        config.write_text(json.dumps({"anthropic_api_key": "from-file"}))
+        config.write_text(json.dumps({"openai_api_key": "from-file"}))
 
         from assignment.core import grader
         with (
-            patch.dict(os.environ, {"ANTHROPIC_API_KEY": "from-env"}, clear=False),
+            patch.dict(os.environ, {"OPENAI_API_KEY": "from-env"}, clear=False),
             patch.object(grader, "CONFIG_FILE", config),
         ):
             assert self._call() == "from-env"
 
     def test_config_file_fallback(self, tmp_path):
         config = tmp_path / "config.json"
-        config.write_text(json.dumps({"anthropic_api_key": "from-file"}))
+        config.write_text(json.dumps({"openai_api_key": "from-file"}))
 
         from assignment.core import grader
         with (
@@ -195,7 +195,7 @@ class TestGetApiKey:
             patch.object(grader, "CONFIG_FILE", config),
         ):
             # Remove env var if present
-            os.environ.pop("ANTHROPIC_API_KEY", None)
+            os.environ.pop("OPENAI_API_KEY", None)
             assert self._call() == "from-file"
 
     def test_no_key_no_base_url_returns_none(self, tmp_path):
@@ -207,21 +207,21 @@ class TestGetApiKey:
             patch.dict(os.environ, {}, clear=False),
             patch.object(grader, "CONFIG_FILE", config),
         ):
-            os.environ.pop("ANTHROPIC_API_KEY", None)
-            os.environ.pop("ANTHROPIC_BASE_URL", None)
+            os.environ.pop("OPENAI_API_KEY", None)
+            os.environ.pop("OPENAI_BASE_URL", None)
             assert self._call() is None
 
     def test_custom_base_url_allows_empty_key(self, tmp_path):
         """Enterprise proxy path: base_url set but no key → returns empty string (not None)."""
         config = tmp_path / "config.json"
-        config.write_text(json.dumps({"anthropic_base_url": "https://proxy.corp.com"}))
+        config.write_text(json.dumps({"openai_base_url": "https://proxy.corp.com"}))
 
         from assignment.core import grader
         with (
             patch.dict(os.environ, {}, clear=False),
             patch.object(grader, "CONFIG_FILE", config),
         ):
-            os.environ.pop("ANTHROPIC_API_KEY", None)
+            os.environ.pop("OPENAI_API_KEY", None)
             result = self._call()
             assert result == ""
 
@@ -242,25 +242,25 @@ class TestGetLlmConfig:
             patch.dict(os.environ, {}, clear=False),
             patch.object(grader, "CONFIG_FILE", config),
         ):
-            os.environ.pop("ANTHROPIC_API_KEY", None)
-            os.environ.pop("ANTHROPIC_BASE_URL", None)
-            os.environ.pop("INTERVIEW_GRADING_MODEL", None)
+            os.environ.pop("OPENAI_API_KEY", None)
+            os.environ.pop("OPENAI_BASE_URL", None)
+            os.environ.pop("GRADING_MODEL", None)
             cfg = self._call()
-            assert "api.anthropic.com" in cfg["base_url"]
-            assert cfg["api_format"] == "anthropic"
+            assert "api.openai.com" in cfg["base_url"]
+            assert cfg["api_format"] == "openai"
 
     def test_env_overrides_config(self, tmp_path):
         config = tmp_path / "config.json"
         config.write_text(json.dumps({
-            "anthropic_base_url": "https://file-url.com",
+            "openai_base_url": "https://file-url.com",
             "grading_model": "file-model",
         }))
 
         from assignment.core import grader
         with (
             patch.dict(os.environ, {
-                "ANTHROPIC_BASE_URL": "https://env-url.com",
-                "INTERVIEW_GRADING_MODEL": "env-model",
+                "OPENAI_BASE_URL": "https://env-url.com",
+                "GRADING_MODEL": "env-model",
             }, clear=False),
             patch.object(grader, "CONFIG_FILE", config),
         ):

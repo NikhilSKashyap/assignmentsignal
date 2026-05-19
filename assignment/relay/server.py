@@ -36,8 +36,8 @@ from assignment.core.grader import DEFAULT_GRADING_MODEL
 
 # ─── Environment variables ────────────────────────────────────────────────────
 # RELAY_API_KEY     — HM registration key (required in production)
-# GRADING_API_KEY   — Anthropic API key for auto-grading (optional)
-# GRADING_MODEL     — Model for auto-grading (default: claude-haiku-4-5-20251001)
+# GRADING_API_KEY / OPENAI_API_KEY — OpenAI API key for auto-grading (optional)
+# GRADING_MODEL     — Model for auto-grading (default: gpt-5.5)
 # GITHUB_CLIENT_ID  — GitHub OAuth app client ID (optional)
 # GITHUB_CLIENT_SECRET — GitHub OAuth app client secret (optional)
 # RELAY_BASE_URL    — Public base URL of this relay (optional, for OAuth redirect URIs)
@@ -658,7 +658,10 @@ class RelayHandler(BaseHTTPRequestHandler):
 
         # --- Auto-grading (best-effort, non-fatal) ---
         auto_graded = False
-        grading_api_key = os.environ.get("GRADING_API_KEY", "").strip()
+        grading_api_key = (
+            os.environ.get("GRADING_API_KEY", "")
+            or os.environ.get("OPENAI_API_KEY", "")
+        ).strip()
         if not grading_api_key:
             print(f"[auto-grade] {code}/{cid}: GRADING_API_KEY not set — skipping", flush=True)
         else:

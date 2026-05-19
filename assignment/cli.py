@@ -586,7 +586,7 @@ def _register_relay(relay_url: str, config: dict, config_file: Path):
 
 
 def cmd_configure_api_key(args):
-    """Store Anthropic API key in ~/.assignment/config.json (direct access shortcut)."""
+    """Store OpenAI API key in ~/.assignment/config.json (direct access shortcut)."""
     import getpass
     config_file = Path.home() / ".assignment" / "config.json"
     config_file.parent.mkdir(parents=True, exist_ok=True)
@@ -598,20 +598,20 @@ def cmd_configure_api_key(args):
         except Exception:
             pass
 
-    print("\nConfigure Anthropic API key for assignmentsignal grading")
+    print("\nConfigure OpenAI API key for assignmentsignal grading")
     print("─" * 50)
-    print("Get your key at: https://console.anthropic.com/settings/keys")
+    print("Get your key at: https://platform.openai.com/api-keys")
     print("Enterprise / proxy users: run 'assignment configure-llm' instead.\n")
 
-    key = getpass.getpass("Anthropic API key (sk-ant-...): ").strip()
+    key = getpass.getpass("OpenAI API key (sk-...): ").strip()
     if not key.startswith("sk-"):
         print("⚠ Key doesn't look right — should start with 'sk-'. Saved anyway.")
 
-    config["anthropic_api_key"] = key
+    config["openai_api_key"] = key
     config_file.write_text(json.dumps(config, indent=2))
     os.chmod(config_file, 0o600)
     print(f"\n✓ API key saved to {config_file}")
-    print(f"  You can also set ANTHROPIC_API_KEY environment variable instead.\n")
+    print(f"  You can also set OPENAI_API_KEY environment variable instead.\n")
 
 
 def cmd_configure_llm(args):
@@ -619,10 +619,9 @@ def cmd_configure_llm(args):
     Configure the LLM endpoint used for grading.
 
     Covers three deployment patterns:
-      Direct      — Anthropic API key, default base URL
+      Direct      — OpenAI API key, default base URL
       Enterprise  — Internal proxy (Floodgate, Azure AI, Bedrock gateway…)
                     Same API shape, different URL + optional custom headers.
-      OpenAI-compat — Proxy that speaks Chat Completions format instead.
     """
     config_file = Path.home() / ".assignment" / "config.json"
     config_file.parent.mkdir(parents=True, exist_ok=True)
@@ -634,41 +633,32 @@ def cmd_configure_llm(args):
         except Exception:
             pass
 
-    current_url    = config.get("anthropic_base_url", "")
+    current_url    = config.get("openai_base_url", "") or config.get("anthropic_base_url", "")
     current_model  = config.get("grading_model", "")
-    current_format = config.get("api_format", "anthropic")
-    current_hdrs   = json.dumps(config.get("anthropic_extra_headers") or {})
+    current_hdrs   = json.dumps(config.get("openai_extra_headers") or config.get("anthropic_extra_headers") or {})
 
     print("\nConfigure LLM endpoint for assignmentsignal grading")
     print("─" * 55)
-    print("Direct (default):    leave Base URL blank, enter Anthropic key")
+    print("Direct (default):    leave Base URL blank, enter OpenAI key")
     print("Enterprise proxy:    enter your proxy URL; API key optional")
-    print("OpenAI-compatible:   enter proxy URL, set format to 'openai'")
     print()
 
     # ── Base URL ──────────────────────────────────────────────────────────────
-    prompt = f"Base URL [{current_url or 'https://api.anthropic.com'}]: "
+    prompt = f"Base URL [{current_url or 'https://api.openai.com'}]: "
     base_url = input(prompt).strip().rstrip("/")
     if not base_url:
         base_url = current_url  # keep existing or leave blank (= use default)
 
     # ── API key ───────────────────────────────────────────────────────────────
     import getpass
-    if base_url and base_url != "https://api.anthropic.com":
+    if base_url and base_url != "https://api.openai.com":
         print("\nAPI key — leave blank if your proxy handles auth (e.g. SSO / network-level).")
     else:
-        print("\nGet your Anthropic key at: console.anthropic.com/settings/keys")
+        print("\nGet your OpenAI key at: platform.openai.com/api-keys")
     key = getpass.getpass("API key [blank = keep existing / not required]: ").strip()
 
-    # ── API format ────────────────────────────────────────────────────────────
-    print(f"\nAPI format: 'anthropic' (default) or 'openai' (Chat Completions compatible)")
-    fmt = input(f"Format [{current_format}]: ").strip().lower() or current_format
-    if fmt not in ("anthropic", "openai"):
-        print(f"  ⚠ Unknown format '{fmt}' — defaulting to 'anthropic'.")
-        fmt = "anthropic"
-
     # ── Model override ────────────────────────────────────────────────────────
-    default_model = "claude-3-5-haiku-20241022"
+    default_model = "gpt-5.5"
     print(f"\nModel name — your proxy may use a different alias or version ID.")
     model = input(f"Model [{current_model or default_model}]: ").strip() or current_model
 
@@ -680,37 +670,33 @@ def cmd_configure_llm(args):
         extra_headers = json.loads(hdrs_raw) if hdrs_raw and hdrs_raw != "{}" else {}
     except Exception:
         print("  ⚠ Could not parse headers as JSON — ignoring.")
-        extra_headers = config.get("anthropic_extra_headers") or {}
+        extra_headers = config.get("openai_extra_headers") or {}
 
     # ── Save ──────────────────────────────────────────────────────────────────
     if base_url:
-        config["anthropic_base_url"] = base_url
+        config["openai_base_url"] = base_url
     if key:
-        config["anthropic_api_key"] = key
-    if fmt != "anthropic":
-        config["api_format"] = fmt
-    elif "api_format" in config:
-        del config["api_format"]          # remove if reset to default
+        config["openai_api_key"] = key
     if model and model != default_model:
         config["grading_model"] = model
     elif "grading_model" in config and not model:
         del config["grading_model"]
     if extra_headers:
-        config["anthropic_extra_headers"] = extra_headers
-    elif "anthropic_extra_headers" in config:
-        del config["anthropic_extra_headers"]
+        config["openai_extra_headers"] = extra_headers
+    elif "openai_extra_headers" in config:
+        del config["openai_extra_headers"]
 
     config_file.write_text(json.dumps(config, indent=2))
     os.chmod(config_file, 0o600)
 
     # ── Summary ───────────────────────────────────────────────────────────────
-    effective_url = base_url or "https://api.anthropic.com"
+    effective_url = base_url or "https://api.openai.com"
     effective_model = model or default_model
     key_display = (key[:8] + "...") if key else "(none — proxy handles auth)"
     print(f"\n✓ LLM grading configured:")
     print(f"  Base URL:  {effective_url}")
     print(f"  API key:   {key_display}")
-    print(f"  Format:    {fmt}")
+    print(f"  API:       OpenAI Responses")
     print(f"  Model:     {effective_model}")
     if extra_headers:
         print(f"  Headers:   {json.dumps(extra_headers)}")
@@ -814,7 +800,7 @@ def main():
     p_uninstall.add_argument("--platform", default="claude")
 
     sub.add_parser("configure-email", help="Set up SMTP credentials")
-    sub.add_parser("configure-api-key", help="Store Anthropic API key (direct access)")
+    sub.add_parser("configure-api-key", help="Store OpenAI API key (direct access)")
     sub.add_parser("configure-llm", help="Configure LLM endpoint for grading (enterprise proxies, custom base URL)")
     sub.add_parser("configure-relay", help="Set relay server URL and API key")
     p_dashboard = sub.add_parser("dashboard", help="Open professor/TA dashboard")
