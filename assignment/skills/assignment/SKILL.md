@@ -14,7 +14,7 @@ python -m assignment.core.session start --code <CODE>
 
 Do not browse the repo first. Do not explain the command first. Do not ask for confirmation.
 
-After the command prints the assignment banner and problem statement, output nothing else. Wait for the student's next message and treat all subsequent work as part of the active assignment session.
+After the command completes, show the full assignment banner and problem statement from stdout to the student verbatim. Do not add commentary before or after it. Wait for the student's next message and treat all subsequent work as part of the active assignment session.
 
 ## While Active
 
@@ -37,4 +37,3 @@ python -m assignment.core.transport send --code <CODE>
 ```
 
 Show only the submission confirmation. Never show scores, rubric notes, grading summaries, ranking, or AI evaluation to students.
-

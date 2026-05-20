@@ -209,7 +209,8 @@ python -m assignment.core.session start --code <CODE>
 ```
 
 Do not inspect the repo first. Do not explain the plan first. Do not ask for confirmation.
-After the command prints the assignment banner and problem, output nothing else.
+After the command completes, show the full assignment banner and problem statement
+from stdout to the student verbatim. Do not add commentary before or after it.
 Wait for the student's next message and treat all subsequent work as part of
 the active assignment session.
 
