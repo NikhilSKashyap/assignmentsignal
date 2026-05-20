@@ -289,6 +289,7 @@ class RelayTransport(Transport):
             body["session_token"] = manifest["session_token"]
         if manifest.get("github_repo_url"):
             body["github_repo_url"] = manifest["github_repo_url"]
+            body["github_push_ok"] = bool(manifest.get("github_push_ok"))
         if manifest.get("candidate_name"):
             body["candidate_name"] = manifest["candidate_name"]
         if manifest.get("github_username"):

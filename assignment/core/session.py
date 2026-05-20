@@ -21,6 +21,7 @@ import os
 import subprocess
 import time
 import urllib.error
+import urllib.parse
 import urllib.request
 import webbrowser
 from pathlib import Path
@@ -227,12 +228,38 @@ def _ensure_git_init(code: str):
         ).returncode == 0
         if not is_git:
             subprocess.run(["git", "init"], cwd=cwd, capture_output=True)
+        _ensure_git_identity(cwd)
         subprocess.run(["git", "add", "-A"], cwd=cwd, capture_output=True)
         subprocess.run(
             ["git", "commit", "--allow-empty", "-m",
              f"assignment session start — {code}"],
             cwd=cwd, capture_output=True,
         )
+    except Exception:
+        pass
+
+
+def _ensure_git_identity(cwd: str):
+    """Set repo-local git identity if the student's machine has none configured."""
+    try:
+        name = subprocess.run(
+            ["git", "config", "user.name"],
+            cwd=cwd, capture_output=True, text=True,
+        ).stdout.strip()
+        email = subprocess.run(
+            ["git", "config", "user.email"],
+            cwd=cwd, capture_output=True, text=True,
+        ).stdout.strip()
+        if not name:
+            subprocess.run(
+                ["git", "config", "user.name", "AssignmentSignal Student"],
+                cwd=cwd, capture_output=True,
+            )
+        if not email:
+            subprocess.run(
+                ["git", "config", "user.email", "student@assignmentsignal.local"],
+                cwd=cwd, capture_output=True,
+            )
     except Exception:
         pass
 
@@ -253,6 +280,23 @@ def _add_github_remote(repo_url: str):
         pass
 
 
+def _github_authenticated_push_url(repo_url: str, github_token: str) -> str:
+    """Build a GitHub HTTPS push URL without leaking credentials into manifest state."""
+    parsed = urllib.parse.urlparse(repo_url)
+    path = parsed.path
+    if not path.endswith(".git"):
+        path = path.rstrip("/") + ".git"
+    token = urllib.parse.quote(github_token, safe="")
+    return urllib.parse.urlunparse((
+        parsed.scheme or "https",
+        f"x-access-token:{token}@{parsed.netloc or 'github.com'}",
+        path,
+        "",
+        "",
+        "",
+    ))
+
+
 def _git_push_session(session_meta: dict) -> bool:
     """
     Stage and commit all session changes, then push to the GitHub remote.
@@ -269,20 +313,36 @@ def _git_push_session(session_meta: dict) -> bool:
 
     cwd = os.getcwd()
     try:
+        _ensure_git_identity(cwd)
+
         # Commit all session changes
-        subprocess.run(["git", "add", "-A"], cwd=cwd, capture_output=True)
-        subprocess.run(
+        add_result = subprocess.run(["git", "add", "-A"], cwd=cwd, capture_output=True)
+        if add_result.returncode != 0:
+            stderr = add_result.stderr.decode(errors="replace")[:300]
+            print(f"  ⚠  Git add failed — repository link will still be saved.\n     {stderr}")
+            return False
+
+        commit_result = subprocess.run(
             ["git", "commit", "--allow-empty", "-m",
              f"assignment session end — {code}"],
             cwd=cwd, capture_output=True,
         )
+        if commit_result.returncode != 0:
+            stderr = commit_result.stderr.decode(errors="replace")[:300]
+            print(f"  ⚠  Git commit failed — repository link will still be saved.\n     {stderr}")
+            return False
 
         # Embed token in remote URL for authenticated push
-        token_url = repo_url.replace("https://", f"https://{github_token}@")
-        subprocess.run(
-            ["git", "remote", "set-url", "assignment", token_url],
+        token_url = _github_authenticated_push_url(repo_url, github_token)
+        subprocess.run(["git", "remote", "remove", "assignment"], cwd=cwd, capture_output=True)
+        remote_result = subprocess.run(
+            ["git", "remote", "add", "assignment", token_url],
             cwd=cwd, capture_output=True,
         )
+        if remote_result.returncode != 0:
+            stderr = remote_result.stderr.decode(errors="replace")[:300]
+            print(f"  ⚠  Git remote setup failed — repository link will still be saved.\n     {stderr}")
+            return False
 
         result = subprocess.run(
             ["git", "push", "--force", "assignment", "HEAD:main"],
@@ -296,9 +356,9 @@ def _git_push_session(session_meta: dict) -> bool:
         )
 
         if result.returncode != 0:
-            stderr = result.stderr.decode()[:200] if result.stderr else ""
+            stderr = result.stderr.decode(errors="replace")[:300] if result.stderr else ""
             print(f"  ⚠  Git push failed — your code is still submitted but the repo "
-                  f"won't be browsable.\n     {stderr}")
+                  f"may not show the latest files yet.\n     {stderr}")
             return False
         return True
     except Exception as e:
@@ -633,8 +693,7 @@ def seal_session(code: str) -> dict:
     push_ok = False
     if session.get("github_repo_url") and session.get("github_token"):
         push_ok = _git_push_session(session)
-        if not push_ok:
-            session["github_repo_url"] = None
+    session["github_push_ok"] = push_ok
 
     # Final git diff + per-prompt commit log
     git_base = session.get("git_base_commit")
@@ -670,6 +729,7 @@ def seal_session(code: str) -> dict:
         "candidate_email":   session.get("candidate_email"),
         "github_username":   session.get("github_username"),
         "github_repo_url":   session.get("github_repo_url"),
+        "github_push_ok":    session.get("github_push_ok", False),
         "github_avatar_url": session.get("avatar_url"),
         "hm_email":          session.get("hm_email"),
         "cc_emails":         session.get("cc_emails", []),

@@ -650,10 +650,12 @@ class RelayHandler(BaseHTTPRequestHandler):
                                        f"Could not base64-decode '{key}'.")
 
         github_repo_url = body.get("github_repo_url") or None
+        github_push_ok = body.get("github_push_ok")
         candidate_name  = body.get("candidate_name") or None
         _store.save_session(hm_key, code, cid, candidate_email, files,
                             github_identity=github_identity,
                             github_repo_url=github_repo_url,
+                            github_push_ok=github_push_ok,
                             candidate_name=candidate_name)
 
         # --- Auto-grading (best-effort, non-fatal) ---

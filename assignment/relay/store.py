@@ -289,6 +289,7 @@ class SessionStore:
                 "revealed":        meta.get("revealed", False),
                 "github_username": meta.get("github_username"),
                 "github_repo_url": meta.get("github_repo_url"),
+                "github_push_ok":  meta.get("github_push_ok"),
                 "candidate_name":  meta.get("candidate_name"),
                 "avatar_url":      meta.get("avatar_url"),
                 "flag_count":      flag_count,
@@ -318,7 +319,8 @@ class SessionStore:
     MAX_FILE_BYTES    = 20  * 1024 * 1024  # 20 MB per individual file
 
     def save_session(self, hm_key: str, code: str, cid: str, candidate_email: str, files: dict[str, bytes], github_identity: dict | None = None,
-                     github_repo_url: str | None = None, candidate_name: str | None = None):
+                     github_repo_url: str | None = None, github_push_ok: bool | None = None,
+                     candidate_name: str | None = None):
         # Enforce per-file and per-session size limits
         total = sum(len(v) for v in files.values())
         if total > self.MAX_SESSION_BYTES:
@@ -356,6 +358,7 @@ class SessionStore:
             self.record_github_submission(code, github_identity["github_id"], cid)
         if github_repo_url:
             meta["github_repo_url"] = github_repo_url
+            meta["github_push_ok"] = bool(github_push_ok)
         if candidate_name:
             meta["candidate_name"] = candidate_name
         self._save_meta(hm_key, code, cid, meta)
@@ -406,6 +409,7 @@ class SessionStore:
             "candidate_name":   meta.get("candidate_name"),
             "github_username":  meta.get("github_username"),
             "github_repo_url":  meta.get("github_repo_url"),
+            "github_push_ok":   meta.get("github_push_ok"),
             "avatar_url":       meta.get("avatar_url"),
             "manifest":        manifest,
             "events":          events,

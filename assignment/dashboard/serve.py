@@ -1865,6 +1865,7 @@ def _build_candidate_detail_html(code: str, cid: str = "") -> str:
     cand_name     = relay_session.get("candidate_name", "")  if relay_session else ""
     cand_username = relay_session.get("github_username", "")  if relay_session else ""
     cand_repo_url = relay_session.get("github_repo_url", "")  if relay_session else ""
+    cand_push_ok  = relay_session.get("github_push_ok") if relay_session else None
     cand_avatar   = relay_session.get("avatar_url", "")       if relay_session else ""
 
     # Pre-build HTML fragments (no backslashes in f-string expressions — Python 3.10+)
@@ -1895,6 +1896,10 @@ def _build_candidate_detail_html(code: str, cid: str = "") -> str:
         + '" target="_blank" style="color:#4ade80;text-decoration:none">View code repository →</a></div>'
         if cand_repo_url else ''
     )
+    repo_push_note = (
+        '<div style="font-size:11px;color:#f59e0b;margin-top:3px">Git push did not complete; submission files are still saved in AssignmentSignal.</div>'
+        if cand_repo_url and cand_push_ok is False else ''
+    )
     no_identity_note = (
         '<div style="font-size:13px;color:#52525b">No identity info — GitHub OAuth not configured.</div>'
         if not any([cand_name, cand_email, cand_username]) else ''
@@ -1907,6 +1912,7 @@ def _build_candidate_detail_html(code: str, cid: str = "") -> str:
           {email_html}
           {gh_user_html}
           {repo_html}
+          {repo_push_note}
           {no_identity_note}
         </div>
       </div>"""

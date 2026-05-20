@@ -1,4 +1,5 @@
 from assignment.core.setup import student_package
+from assignment.core.session import _github_authenticated_push_url
 from assignment.relay.store import SessionStore
 
 
@@ -47,3 +48,9 @@ def test_relay_candidate_payload_uses_scoped_submit_token(tmp_path):
     assert "rubric" not in public
     assert store.verify_submit_token(hm_key, code, public["submit_token"])
     assert not store.verify_submit_token(hm_key, code, "wrong-token")
+
+
+def test_github_push_url_uses_token_username_and_git_suffix():
+    url = _github_authenticated_push_url("https://github.com/student/assignment-ASG-1", "tok:en")
+
+    assert url == "https://x-access-token:tok%3Aen@github.com/student/assignment-ASG-1.git"
