@@ -12,6 +12,7 @@ build/
 HANDOFF.md
 CLAUDE.md
 CODEX.md
+AGENTS.md
 worked/
 
 # macOS
@@ -19,6 +20,7 @@ worked/
 
 # Claude Code local config (hooks, permissions, keys)
 .claude/
+.codex/
 
 # Secrets / local config
 .env

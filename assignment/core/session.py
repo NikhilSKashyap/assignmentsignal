@@ -435,8 +435,6 @@ def _authenticate_github(relay_url: str, code: str) -> dict | None:
     Returns one of:
       {"github_id": ..., "github_username": ..., "avatar_url": ..., "session_token": ...}
                         — success; caller proceeds with GitHub identity
-      {"duplicate": True}
-                        — already submitted; caller should abort
       {"blocked": True, "reason": str}
                         — OAuth is configured on the relay but could not complete;
                           caller must abort (do not fall back to email-only)
@@ -495,11 +493,6 @@ def _authenticate_github(relay_url: str, code: str) -> dict | None:
         if status == "complete":
             print(f"\n  ✓ Authenticated as @{result['github_username']}\n")
             return result
-        if status == "duplicate":
-            print(f"\n")
-            print(f"  ✗ @{result.get('github_username', 'This account')} has already submitted for {code}.")
-            print(f"    Each GitHub account can only submit once per assignment.\n")
-            return {"duplicate": True}
         if status in ("error", "expired"):
             print(f"\n  ✗ GitHub authentication failed ({status}).\n")
             return {"blocked": True, "reason": f"Authentication {status}. Run /assignment {code} to try again."}
@@ -536,14 +529,12 @@ def start_session(code: str, candidate_email: str | None = None, candidate_name:
     # Always ensure a git repo exists in the working directory for diff capture.
     _ensure_git_init(code)
 
-    # GitHub OAuth — one GitHub account = one submission per assignment code.
+    # GitHub OAuth — identifies the student while allowing multiple attempts.
     # Falls back to email-only only when relay confirms OAuth is not configured.
     # If OAuth is configured but fails (network error, timeout), the session is blocked.
     github_auth: dict | None = None
     if relay_url:
         github_auth = _authenticate_github(relay_url, code)
-        if github_auth and github_auth.get("duplicate"):
-            return {}  # Already submitted — abort cleanly
         if github_auth and github_auth.get("blocked"):
             print(f"\n✗ Session not started: GitHub authentication required but did not complete.")
             print(f"  {github_auth.get('reason', '')}\n")
@@ -552,7 +543,7 @@ def start_session(code: str, candidate_email: str | None = None, candidate_name:
     # Create a GitHub repo and wire up the remote if OAuth succeeded
     github_repo_url: str | None = None
     github_reviewers_added: list[str] = []
-    if github_auth and not github_auth.get("duplicate"):
+    if github_auth:
         github_token_val = github_auth.get("github_token")
         if github_token_val:
             print(f"  Creating private assignment repository...", end="", flush=True)

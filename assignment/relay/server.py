@@ -418,14 +418,6 @@ class RelayHandler(BaseHTTPRequestHandler):
         avatar_url      = profile.get("avatar_url", "")
         assignment_code  = state_data["code"]
 
-        # Duplicate check — early warning in browser (enforced again on submit)
-        if _store.check_github_duplicate(assignment_code, github_id):
-            _store.update_github_state(state, {
-                "status":          "duplicate",
-                "github_username": github_username,
-            })
-            return self._text(_oauth_duplicate_html(github_username, assignment_code), "text/html")
-
         # Success
         _store.update_github_state(state, {
             "status":          "complete",
@@ -583,6 +575,7 @@ class RelayHandler(BaseHTTPRequestHandler):
             return self._error(404, "assignment_not_found",
                                f"Assignment {code} not registered. Professor/TA must push /assignments first.")
         hm_key = owner
+        allow_multiple_submissions = _store.allow_multiple_submissions(hm_key, code)
         if not self._auth_matches_hm(owner):
             submit_token = body.get("submit_token", "").strip()
             if not _store.verify_submit_token(owner, code, submit_token):
@@ -611,22 +604,34 @@ class RelayHandler(BaseHTTPRequestHandler):
                 return self._error(403, "token_mismatch",
                                    "Session token was issued for a different assignment code.")
             github_id = state_data.get("github_id")
-            # Re-submissions from the same session (e.g. debrief update) are allowed —
-            # the session_token is tied to this github_id at OAuth time (verified above),
-            # so this is the same student updating their session, not a new submission.
-            # Cross-account duplicates are already blocked at OAuth/session-start time.
             github_identity = {
                 "github_id":       github_id,
                 "github_username": state_data.get("github_username"),
                 "avatar_url":      state_data.get("avatar_url"),
             }
-            cid = make_github_cid(github_id)
+            if not allow_multiple_submissions and _store.check_github_duplicate(code, github_id):
+                return self._error(
+                    409,
+                    "duplicate_submission",
+                    "This assignment allows one submission per student.",
+                )
+            cid = make_github_cid(github_id, session_token if allow_multiple_submissions else "")
         else:
-            # No GitHub configured — use email-based cid (existing behaviour)
-            cid = make_cid(candidate_email)
-
-        # Re-submission from the same session (e.g. debrief update) is allowed — just overwrite.
-        # Duplicate-account enforcement happens at OAuth/session-start time, not here.
+            if (
+                not allow_multiple_submissions
+                and _store.check_email_duplicate(hm_key, code, candidate_email)
+            ):
+                return self._error(
+                    409,
+                    "duplicate_submission",
+                    "This assignment allows one submission per student.",
+                )
+            cid_basis = (
+                f"{candidate_email}:{body.get('submitted_at', time.time())}"
+                if allow_multiple_submissions
+                else candidate_email
+            )
+            cid = make_cid(cid_basis)
 
         file_map = {
             "manifest.json": "manifest_json",

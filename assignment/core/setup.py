@@ -50,6 +50,7 @@ def student_package(payload: dict) -> dict:
         "created_at",
         "problem_hash",
         "reviewer_github_usernames",
+        "allow_multiple_submissions",
     }
     return {k: v for k, v in payload.items() if k in allowed}
 
@@ -67,6 +68,7 @@ def create_assignment(
     reviewer_github_usernames: list[str] | None = None,
     time_limit_minutes: int | None = None,
     audit_email: str | None = None,
+    allow_multiple_submissions: bool = False,
 ) -> dict:
     cc_emails = cc_emails or []
     reviewer_github_usernames = reviewer_github_usernames or []
@@ -100,6 +102,7 @@ def create_assignment(
         "student_email": student_email,
         "reviewer_github_usernames": reviewer_github_usernames,
         "time_limit_minutes": time_limit_minutes,
+        "allow_multiple_submissions": allow_multiple_submissions,
         "anonymize": False,
         "audit_email": audit_email,
         "created_at": created_at,
@@ -183,6 +186,7 @@ def main():
     parser.add_argument("--reviewer-github-usernames", default="")
     parser.add_argument("--time-limit", type=int, default=None)
     parser.add_argument("--audit-email", default=None)
+    parser.add_argument("--allow-multiple-submissions", action="store_true")
     args = parser.parse_args()
 
     if args.problem:
@@ -212,6 +216,7 @@ def main():
         reviewer_github_usernames=reviewer_github_usernames,
         time_limit_minutes=args.time_limit,
         audit_email=args.audit_email,
+        allow_multiple_submissions=args.allow_multiple_submissions,
     )
 
     relay_url = result["payload"].get("relay_url", "")

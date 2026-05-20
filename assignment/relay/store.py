@@ -41,9 +41,10 @@ def make_cid(email: str) -> str:
     return hashlib.sha256(email.lower().strip().encode()).hexdigest()[:12]
 
 
-def make_github_cid(github_id: int | str) -> str:
-    """Deterministic, anonymous student ID from GitHub user ID."""
-    return hashlib.sha256(f"github:{github_id}".encode()).hexdigest()[:12]
+def make_github_cid(github_id: int | str, submission_id: str = "") -> str:
+    """Anonymous student submission ID from GitHub user ID plus an attempt id."""
+    suffix = f":{submission_id}" if submission_id else ""
+    return hashlib.sha256(f"github:{github_id}{suffix}".encode()).hexdigest()[:12]
 
 
 class SessionStore:
@@ -214,6 +215,13 @@ class SessionStore:
         if pkg is None:
             return False
         return bool(pkg.get("auto_grade", False))
+
+    def allow_multiple_submissions(self, hm_key: str, code: str) -> bool:
+        """Return whether this assignment accepts more than one submission per student."""
+        pkg = self._load_json(self._assignments_dir(hm_key) / f"{code}.json")
+        if pkg is None:
+            return False
+        return bool(pkg.get("allow_multiple_submissions", False))
 
     def update_rubric(self, hm_key: str, code: str, rubric: str) -> dict:
         """Update the rubric for an existing assignment. Returns updated config."""
@@ -615,12 +623,30 @@ class SessionStore:
         self._write_atomic(p, json.dumps(obj, indent=2))
 
     def check_github_duplicate(self, code: str, github_id: int | str) -> bool:
-        """Return True if this github_id has already submitted for this code."""
+        """Return True if this github_id has submitted for this code."""
         subs = self._load_json(self._github_subs_path()) or {}
         return str(github_id) in subs.get(code, {})
 
+    def check_email_duplicate(self, hm_key: str, code: str, candidate_email: str) -> bool:
+        """Return True if this email has submitted for this assignment code."""
+        code_dir = self._sessions_dir(hm_key) / code
+        if not code_dir.exists():
+            return False
+        normalized = candidate_email.lower().strip()
+        for cid_dir in code_dir.iterdir():
+            if not cid_dir.is_dir():
+                continue
+            meta = self._load_json(cid_dir / "meta.json") or {}
+            if meta.get("candidate_email", "").lower().strip() == normalized:
+                return True
+        return False
+
     def record_github_submission(self, code: str, github_id: int | str, cid: str) -> None:
-        """Lock github_id → cid for this assignment code (prevents re-submission)."""
+        """Record github_id submission history for this assignment code."""
         subs = self._load_json(self._github_subs_path()) or {}
-        subs.setdefault(code, {})[str(github_id)] = cid
+        attempts = subs.setdefault(code, {}).setdefault(str(github_id), [])
+        if isinstance(attempts, list):
+            attempts.append(cid)
+        else:
+            subs[code][str(github_id)] = [attempts, cid]
         self._write_atomic(self._github_subs_path(), json.dumps(subs, indent=2))

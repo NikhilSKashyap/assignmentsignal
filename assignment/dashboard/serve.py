@@ -502,6 +502,16 @@ def _build_create_assignment_html(in_wizard: bool = False, error: str = "") -> s
       <label for="time_limit">Time limit in minutes (optional)</label>
       <input id="time_limit" name="time_limit" type="number" class="wizard-field number"
              min="1" placeholder="e.g. 90">
+      <label style="display:flex;align-items:flex-start;gap:10px;margin:4px 0 14px 0;color:#d4d4d8;font-size:13px">
+        <input type="checkbox" name="allow_multiple_submissions" value="1"
+               style="margin-top:3px;accent-color:#6366f1">
+        <span>
+          Allow multiple submissions
+          <span style="display:block;font-size:11px;color:#52525b;line-height:1.5;margin-top:2px">
+            Each attempt from the same student appears separately in the dashboard.
+          </span>
+        </span>
+      </label>
       <label for="reviewer_github_usernames">Professor/TA GitHub usernames (optional)</label>
       <input id="reviewer_github_usernames" name="reviewer_github_usernames" class="wizard-field"
              placeholder="e.g. prof-user, ta-user">
@@ -2329,6 +2339,7 @@ class DashboardHandler(http.server.BaseHTTPRequestHandler):
             rubric = body.get("rubric", "").strip()
             time_limit_raw = body.get("time_limit", "").strip()
             reviewer_raw = body.get("reviewer_github_usernames", "").strip()
+            allow_multiple_submissions = bool(body.get("allow_multiple_submissions", ""))
             in_wizard = bool(body.get("in_wizard", ""))
 
             if not problem:
@@ -2354,6 +2365,7 @@ class DashboardHandler(http.server.BaseHTTPRequestHandler):
                     rubric=rubric,
                     reviewer_github_usernames=reviewers,
                     time_limit_minutes=time_limit,
+                    allow_multiple_submissions=allow_multiple_submissions,
                 )
                 self._send_html(_build_create_success_html(result["code"]))
             except Exception as e:

@@ -14,7 +14,7 @@ python -m assignment.core.session start --code <CODE>
 
 Do not browse the repo first. Do not explain the command first. Do not ask for confirmation.
 
-After the command completes, show the full assignment banner and problem statement from stdout to the student verbatim. Do not add commentary before or after it. Wait for the student's next message and treat all subsequent work as part of the active assignment session.
+After the command completes, show the full assignment banner and problem statement from stdout to the student verbatim. Do not add commentary before or after it. If stdout is not visible in the chat, read `~/.assignment/active_session.json` and render the assignment code, start time, time limit, and `problem` field as the visible session banner. Wait for the student's next message and treat all subsequent work as part of the active assignment session.
 
 ## While Active
 

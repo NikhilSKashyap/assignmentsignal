@@ -200,6 +200,7 @@ def _install_codex(verbose=True):
     workspace stronger submit/session instructions when Codex reads them.
     """
     agents_md = Path("AGENTS.md")
+    codex_global_agents_md = Path.home() / ".codex" / "AGENTS.md"
     entry = """
 ## assignment skill
 When the user types `/assignment <CODE>`, this is an AssignmentSignal student session. Immediately run:
@@ -211,6 +212,9 @@ python -m assignment.core.session start --code <CODE>
 Do not inspect the repo first. Do not explain the plan first. Do not ask for confirmation.
 After the command completes, show the full assignment banner and problem statement
 from stdout to the student verbatim. Do not add commentary before or after it.
+If stdout is not visible in the chat, read `~/.assignment/active_session.json`
+and render the assignment code, start time, time limit, and `problem` field
+as the visible session banner.
 Wait for the student's next message and treat all subsequent work as part of
 the active assignment session.
 
@@ -232,6 +236,16 @@ Show only the submission confirmation. Never show scores to students.
         agents_md.write_text(entry)
     if verbose:
         print(f"  ✓ AGENTS.md updated")
+
+    codex_global_agents_md.parent.mkdir(parents=True, exist_ok=True)
+    if codex_global_agents_md.exists():
+        content = codex_global_agents_md.read_text()
+        if "## assignment skill" not in content:
+            codex_global_agents_md.write_text(content + entry)
+    else:
+        codex_global_agents_md.write_text(entry)
+    if verbose:
+        print(f"  ✓ Codex global AGENTS.md updated: {codex_global_agents_md}")
 
     # Install a global /assignment skill for Codex/Codex-like local skill loaders
     # so students can run `/assignment <CODE>` from any project directory after
