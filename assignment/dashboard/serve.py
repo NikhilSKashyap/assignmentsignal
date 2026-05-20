@@ -232,7 +232,7 @@ def _score_color(score) -> str:
 
 
 def _build_candidate_row(r: dict) -> str:
-    from assignment.core.decisions import is_graded, get_decision
+    from assignment.core.decisions import is_graded
 
     label = r["_display_label"]
     show_reveal = r.get("_show_reveal", False)
@@ -258,15 +258,11 @@ def _build_candidate_row(r: dict) -> str:
     # Relay mode: graded/revealed state comes from relay summary data
     if r.get("_source") == "relay":
         graded = r.get("graded", False)
-        decision_obj = None  # Decision shown on detail page only
     else:
         graded = is_graded(code)
-        decision_obj = get_decision(code)
 
     # Determine status for data attribute
-    if decision_obj or r.get("decision"):
-        row_status = "decided"
-    elif graded or (score is not None):
+    if graded or (score is not None):
         row_status = "graded"
     else:
         row_status = "pending"
@@ -282,14 +278,6 @@ def _build_candidate_row(r: dict) -> str:
     flag_severity = r.get("flag_severity", "none")
 
     reveal_btn = ""
-
-    # Decision badge (local mode only)
-    decision_badge = ""
-    if decision_obj:
-        d = decision_obj["decision"]
-        d_color = {"yes": "#22c55e", "maybe": "#818cf8", "no": "#ef4444"}.get(d, "#71717a")
-        d_label = {"yes": "✓ Yes", "maybe": "→ Maybe", "no": "✗ No"}.get(d, d)
-        decision_badge = f' <span style="color:{d_color};font-size:11px;font-weight:600">{d_label}</span>'
 
     view_url = (
         f"/candidate?code={quote(code, safe='')}&cid={quote(cid, safe='')}"
@@ -345,26 +333,19 @@ def _build_candidate_row(r: dict) -> str:
     else:
         score_ring = '<span class="score-ring" style="color:#3f3f46;border-color:#27272a">—</span>'
 
-    decision_str = ""
-    if decision_obj:
-        decision_str = decision_obj.get("decision", "")
-    elif r.get("decision"):
-        decision_str = r.get("decision", "")
-
     return f"""
-    <tr data-code="{code}" data-cid="{cid}" data-score="{score_data}" data-submitted="{submitted_ts}" data-duration="{elapsed_float}" data-flag-severity="{flag_severity}" data-status="{row_status}" data-label="{escape(label)}" data-decision="{decision_str}" data-flagcount="{flag_count}" data-flagsev="{flag_severity}">
+    <tr data-code="{code}" data-cid="{cid}" data-score="{score_data}" data-submitted="{submitted_ts}" data-duration="{elapsed_float}" data-flag-severity="{flag_severity}" data-status="{row_status}" data-label="{escape(label)}" data-flagcount="{flag_count}" data-flagsev="{flag_severity}">
       <td class="td-label">
         <input type="checkbox" class="candidate-checkbox" data-code="{code}" data-cid="{cid}">
         <span style="display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;
                       border-radius:50%;background:{avatar_bg};color:#a1a1aa;font-size:12px;font-weight:600;
                       flex-shrink:0">{initial}</span>
-        <span class="display-label">{label}</span>{decision_badge}
+        <span class="display-label">{label}</span>
       </td>
       <td>{score_ring}{graded_by_badge}</td>
       <td>{flag_indicator}</td>
       <td style="color:#71717a;font-family:'JetBrains Mono',monospace;font-size:12px">{elapsed}<span style="color:#3f3f46"> min</span></td>
       <td style="color:#52525b;font-family:'JetBrains Mono',monospace;font-size:12px">{event_count}</td>
-      <td style="font-size:11px;font-weight:600;color:{d_color if decision_obj else '#3f3f46'}">{d_label if decision_obj else '—'}</td>
       <td style="color:#52525b;font-size:12px">{submitted}</td>
       <td>
         <a class="btn btn-sm" href="{view_url}" target="_blank">View</a>
@@ -612,9 +593,6 @@ SHARED_CSS = """
   .btn-primary:hover { background: #5b52f0; border-color: #5b52f0; }
   .btn-sm { padding: 5px 12px; font-size: 12px; }
   .btn-grade { border-color: #854d0e; color: #fbbf24; }
-  .btn-hire { border-color: #166534; color: #4ade80; }
-  .btn-next { border-color: #1e40af; color: #818cf8; }
-  .btn-reject { border-color: #7f1d1d; color: #f87171; }
   .badge-pending { background: #1c1917; border: 1px solid #854d0e; color: #fbbf24;
                    font-size: 10px; padding: 2px 8px; border-radius: 10px;
                    margin-right: 6px; vertical-align: middle; font-weight: 500; }
@@ -824,18 +802,18 @@ def _build_dashboard_html(
   {'<div class="controls-row"><label>Sort by:</label><select class="ctrl-select" id="sort-select"><option value="score-desc">Score ↓</option><option value="score-asc">Score ↑</option><option value="submitted-desc">Submitted (newest)</option><option value="submitted-asc">Submitted (oldest)</option><option value="duration">Session duration</option><option value="flags">Flag severity (red first)</option></select></div>' if reports else ''}
 
   {'<!-- Filter controls -->' if reports else ''}
-  {'<div class="controls-row"><label>Status:</label><select class="ctrl-select" id="filter-status"><option value="all">All</option><option value="graded">Graded</option><option value="pending">Pending</option><option value="yes">✓ Yes</option><option value="maybe">→ Maybe</option><option value="no">✗ No</option></select><label style="margin-left:8px">Flags:</label><select class="ctrl-select" id="filter-flags"><option value="all">All</option><option value="clean">Clean only</option><option value="flagged">Flagged only</option></select><label style="margin-left:8px">Score:</label><input type="number" class="ctrl-input" id="filter-score-min" min="0" max="10" step="0.1" placeholder="min"><span style="color:#3f3f46;font-size:12px">–</span><input type="number" class="ctrl-input" id="filter-score-max" min="0" max="10" step="0.1" placeholder="max"><button class="btn btn-sm" id="btn-apply-filter" style="margin-left:4px">Apply</button></div>' if reports else ''}
+  {'<div class="controls-row"><label>Status:</label><select class="ctrl-select" id="filter-status"><option value="all">All</option><option value="graded">Graded</option><option value="pending">Pending</option></select><label style="margin-left:8px">Flags:</label><select class="ctrl-select" id="filter-flags"><option value="all">All</option><option value="clean">Clean only</option><option value="flagged">Flagged only</option></select><label style="margin-left:8px">Score:</label><input type="number" class="ctrl-input" id="filter-score-min" min="0" max="10" step="0.1" placeholder="min"><span style="color:#3f3f46;font-size:12px">–</span><input type="number" class="ctrl-input" id="filter-score-max" min="0" max="10" step="0.1" placeholder="max"><button class="btn btn-sm" id="btn-apply-filter" style="margin-left:4px">Apply</button></div>' if reports else ''}
 
   {'<!-- Summary bar -->' if reports else ''}
-  {'<div class="summary-bar" id="summary-bar"><span id="sb-total">0 submissions</span><span class="sep">|</span><span id="sb-graded">0 graded</span><span class="sep">|</span><span id="sb-pending">0 pending</span><span class="sep">|</span><span id="sb-avg">avg score —</span><span class="sep">|</span><span id="sb-yes" style="color:#22c55e">0 yes</span><span class="sep">|</span><span id="sb-maybe" style="color:#818cf8">0 maybe</span><span class="sep">|</span><span id="sb-no" style="color:#ef4444">0 no</span></div>' if reports else ''}
+  {'<div class="summary-bar" id="summary-bar"><span id="sb-total">0 submissions</span><span class="sep">|</span><span id="sb-graded">0 graded</span><span class="sep">|</span><span id="sb-pending">0 pending</span><span class="sep">|</span><span id="sb-avg">avg score —</span></div>' if reports else ''}
 
   {'<!-- Selection count bar -->' if reports else ''}
   {'<div class="sel-bar" id="sel-bar">0 selected</div>' if reports else ''}
 
   {'<!-- Batch actions bar -->' if reports else ''}
-  {'<div class="batch-bar" id="batch-bar"><button class="btn btn-sm" id="batch-regrade" style="border-color:#312e81;color:#818cf8">↻ Regrade</button><span style="margin-left:8px;color:#27272a;font-size:12px">|</span><button class="btn btn-sm btn-next" id="batch-advance" style="margin-left:8px">Maybe Selected</button><button class="btn btn-sm btn-reject" id="batch-reject">No Selected</button><span style="margin-left:8px;color:#27272a;font-size:12px">|</span><label style="font-size:12px;color:#71717a;margin-left:8px">No below score:</label><input type="number" class="ctrl-input" id="batch-threshold" min="0" max="10" step="0.1" placeholder="e.g. 5"><button class="btn btn-sm btn-reject" id="batch-reject-below" style="margin-left:4px">No Below</button><span class="batch-progress" id="batch-progress"></span></div>' if reports else ''}
+  {'<div class="batch-bar" id="batch-bar"><button class="btn btn-sm" id="batch-regrade" style="border-color:#312e81;color:#818cf8">↻ Regrade</button><span class="batch-progress" id="batch-progress"></span></div>' if reports else ''}
 
-  {'<table id="candidates-table"><thead><tr><th><input type="checkbox" id="select-all"> Student</th><th>Score</th><th>Flags</th><th>Duration</th><th>Events</th><th>Decision</th><th>Submitted</th><th>Actions</th></tr></thead><tbody id="candidates-tbody">' + rows + '</tbody></table>'
+  {'<table id="candidates-table"><thead><tr><th><input type="checkbox" id="select-all"> Student</th><th>Score</th><th>Flags</th><th>Duration</th><th>Events</th><th>Submitted</th><th>Actions</th></tr></thead><tbody id="candidates-tbody">' + rows + '</tbody></table>'
    if reports else
    '<div class="empty"><h3>No submissions yet.</h3><p>Students appear here after /submit.</p></div>'}
 
@@ -924,9 +902,6 @@ def _build_dashboard_html(
       // Status filter
       if (status === 'graded' && row.dataset.status !== 'graded' && row.dataset.status !== 'decided') return false;
       if (status === 'pending' && row.dataset.status !== 'pending') return false;
-      if (status === 'yes'   && row.dataset.decision !== 'yes')   return false;
-      if (status === 'maybe' && row.dataset.decision !== 'maybe') return false;
-      if (status === 'no'    && row.dataset.decision !== 'no')    return false;
       // Flags filter
       if (flags === 'clean' && row.dataset.flagSeverity !== 'none') return false;
       if (flags === 'flagged' && row.dataset.flagSeverity === 'none') return false;
@@ -941,27 +916,15 @@ def _build_dashboard_html(
   // ── Summary bar ────────────────────────────────────────────────────────────
   function updateSummaryBar(rows) {{
     const total    = rows.length;
-    const graded   = rows.filter(r => r.dataset.status === 'graded' || r.dataset.status === 'decided').length;
+    const graded   = rows.filter(r => r.dataset.status === 'graded').length;
     const pending  = rows.filter(r => r.dataset.status === 'pending').length;
     const scores   = rows.map(r => r.dataset.score !== '' ? parseFloat(r.dataset.score) : null).filter(s => s !== null);
     const avg      = scores.length ? (scores.reduce((a,b) => a+b, 0) / scores.length).toFixed(1) : '—';
-
-    // Count decisions from data-decision attribute
-    let countYes = 0, countMaybe = 0, countNo = 0;
-    rows.forEach(r => {{
-      const d = r.dataset.decision || '';
-      if (d === 'yes')   countYes++;
-      if (d === 'maybe') countMaybe++;
-      if (d === 'no')    countNo++;
-    }});
 
     document.getElementById('sb-total').textContent   = total + ' submission' + (total !== 1 ? 's' : '');
     document.getElementById('sb-graded').textContent  = graded + ' graded';
     document.getElementById('sb-pending').textContent = pending + ' pending';
     document.getElementById('sb-avg').textContent     = 'avg score ' + avg;
-    document.getElementById('sb-yes').textContent     = countYes + ' yes';
-    document.getElementById('sb-maybe').textContent   = countMaybe + ' maybe';
-    document.getElementById('sb-no').textContent      = countNo + ' no';
   }}
 
   // ── Pagination ─────────────────────────────────────────────────────────────
@@ -1079,60 +1042,6 @@ def _build_dashboard_html(
     }});
   }}
 
-  // ── Batch decision helper ──────────────────────────────────────────────────
-  async function batchDecision(entries, decision, reason, label) {{
-    if (!entries.length) {{ alert('No students selected.'); return; }}
-    const confirmed = await showConfirm(
-      label + ' ' + entries.length + ' student' + (entries.length !== 1 ? 's' : '') + '?',
-      'This will record a "' + decision + '" decision for each selected student. This cannot be undone.'
-    );
-    if (!confirmed) return;
-
-    const progressEl = document.getElementById('batch-progress');
-    let done = 0;
-    for (const entry of entries) {{
-      progressEl.textContent = label + '... ' + done + '/' + entries.length + ' done';
-      try {{
-        await fetch('/record-decision', {{
-          method: 'POST',
-          headers: {{'Content-Type': 'application/json'}},
-          body: JSON.stringify({{code: entry.code, cid: entry.cid, decision, reason, author: 'HM'}}),
-        }});
-      }} catch(e) {{
-        console.error('Decision failed for', entry.code, e);
-      }}
-      done++;
-    }}
-    progressEl.textContent = 'Done! Reloading...';
-    location.reload();
-  }}
-
-  document.getElementById('batch-advance')?.addEventListener('click', async function() {{
-    const entries = [...document.querySelectorAll('.candidate-checkbox:checked')]
-      .map(cb => ({{code: cb.dataset.code, cid: cb.dataset.cid || ''}}));
-    await batchDecision(entries, 'maybe', 'Batch maybe', 'Maybe');
-  }});
-
-  document.getElementById('batch-reject')?.addEventListener('click', async function() {{
-    const entries = [...document.querySelectorAll('.candidate-checkbox:checked')]
-      .map(cb => ({{code: cb.dataset.code, cid: cb.dataset.cid || ''}}));
-    await batchDecision(entries, 'no', 'Batch no', 'No');
-  }});
-
-  document.getElementById('batch-reject-below')?.addEventListener('click', async function() {{
-    const threshold = parseFloat(document.getElementById('batch-threshold').value);
-    if (isNaN(threshold)) {{ alert('Enter a score threshold first.'); return; }}
-    // Only graded students in current view with score below threshold
-    const entries = visibleRows
-      .filter(r => r.dataset.score !== '' && parseFloat(r.dataset.score) < threshold)
-      .map(r => ({{code: r.dataset.code, cid: r.dataset.cid || ''}}));
-    if (!entries.length) {{
-      alert('No graded students in the current view with score below ' + threshold + '.');
-      return;
-    }}
-    await batchDecision(entries, 'no', 'Batch no (below ' + threshold + ')', 'No below ' + threshold);
-  }});
-
   // ── Batch regrade ──────────────────────────────────────────────────────────
   document.getElementById('batch-regrade')?.addEventListener('click', async function() {{
     const entries = [...document.querySelectorAll('.candidate-checkbox:checked')]
@@ -1201,7 +1110,7 @@ def _build_dashboard_html(
 
   document.getElementById('btn-export-csv')?.addEventListener('click', function() {{
     const visibleRows = allRows.filter(r => r.style.display !== 'none');
-    const headers = ['Candidate', 'Score', 'Flags', 'Duration', 'Events', 'Decision'];
+    const headers = ['Student', 'Score', 'Flags', 'Duration', 'Events'];
     const csvRows = [headers.join(',')];
     visibleRows.forEach(r => {{
       const name = (r.dataset.label || '').replace(/"/g, '""');
@@ -1210,9 +1119,8 @@ def _build_dashboard_html(
       const flagSev = r.dataset.flagsev || '';
       const duration = (r.querySelector('td:nth-child(4)')?.textContent || '').trim().replace(/"/g, '""');
       const events = (r.querySelector('td:nth-child(5)')?.textContent || '').trim();
-      const decision = r.dataset.decision || '';
       csvRows.push(['"' + name + '"', score, flagCount > 0 ? flagSev + ' (' + flagCount + ')' : 'clean',
-                     '"' + duration + '"', events, decision].join(','));
+                     '"' + duration + '"', events].join(','));
     }});
     const blob = new Blob([csvRows.join('\\n')], {{type: 'text/csv;charset=utf-8;'}});
     const url = URL.createObjectURL(blob);
@@ -1699,8 +1607,8 @@ def _render_transcript_html(events: list, manifest: dict | None = None) -> str:
 
 
 def _build_candidate_detail_html(code: str, cid: str = "") -> str:
-    """Full candidate detail page: report + comments + decision buttons."""
-    from assignment.core.decisions import get_comments, get_decision, is_graded
+    """Full student detail page: report, comments, grades, and integrity checks."""
+    from assignment.core.decisions import get_comments, is_graded
 
     # In relay mode with cid, fetch all state from the relay session object
     relay_session = None
@@ -1710,14 +1618,12 @@ def _build_candidate_detail_html(code: str, cid: str = "") -> str:
 
     if relay_session:
         raw_comments    = relay_session.get("comments", [])
-        decision_obj    = relay_session.get("decision")
         graded          = relay_session.get("grading") is not None
         current_grading = relay_session.get("grading") or {}
         grading_history = relay_session.get("grading_history", [])
         session_flags   = relay_session.get("flags", [])
     else:
         raw_comments    = get_comments(code)
-        decision_obj    = get_decision(code)
         graded          = is_graded(code)
         current_grading = {}
         grading_history = []
@@ -1759,22 +1665,6 @@ def _build_candidate_detail_html(code: str, cid: str = "") -> str:
         </div>"""
     if not comments_html:
         comments_html = '<div class="no-comments">No comments yet.</div>'
-
-    # Decision section
-    decision_html = ""
-    if decision_obj:
-        d = decision_obj.get("decision", "")
-        recorded = escape(decision_obj.get("recorded_at") or decision_obj.get("timestamp_iso", ""))
-        colors = {"hire": "#22c55e", "next_round": "#818cf8", "reject": "#ef4444"}
-        labels_map = {"yes": "✓ Yes", "maybe": "→ Maybe", "no": "✗ No"}
-        decision_label = escape(labels_map.get(d, d))
-        decision_reason = escape(decision_obj.get("reason", "—"))
-        decision_html = f"""
-        <div class="current-decision" style="color:{colors.get(d,'#71717a')}">
-          Current decision: <strong>{decision_label}</strong>
-          <span style="color:#52525b;font-size:12px;margin-left:12px">{recorded}</span>
-        </div>
-        <div style="color:#71717a;font-size:13px;margin-top:8px">Reason: {decision_reason}</div>"""
 
     # Grade panel (relay mode — when we have grading data)
     grade_panel_html = ""
@@ -2040,8 +1930,6 @@ def _build_candidate_detail_html(code: str, cid: str = "") -> str:
               border-radius: 8px; padding: 10px; font-size: 13px; resize: vertical;
               min-height: 80px; margin-top: 12px; font-family: inherit; }}
   textarea:focus {{ outline: none; border-color: #4f46e5; }}
-  .decision-btns {{ display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }}
-  .current-decision {{ font-size: 14px; font-weight: 600; margin-bottom: 8px; }}
   .back-link {{ color: #818cf8; text-decoration: none; font-size: 13px; margin-bottom: 24px;
                 display: inline-flex; align-items: center; gap: 6px; }}
   .back-link:hover {{ color: #a5b4fc; }}
@@ -2122,19 +2010,6 @@ def _build_candidate_detail_html(code: str, cid: str = "") -> str:
       <button class="btn btn-sm" style="margin-top:8px" id="btn-add-comment" data-code="{safe_code}" {cid_attr}>Add Comment</button>
     </div>
 
-    <!-- Decision -->
-    <div class="panel">
-      <div class="section-title">Decision</div>
-      {'<div style="color:#f59e0b;font-size:12px;margin-bottom:12px">⚠ Grade this student before recording a decision.</div>' if not graded else ''}
-      <div id="decision-display">{decision_html}</div>
-      <input class="reason-input" id="decision-reason" placeholder="Reason (optional but recommended)">
-      <div class="decision-btns">
-        <button class="btn btn-sm btn-hire" id="btn-hire" data-code="{safe_code}" {cid_attr} {'disabled' if not graded else ''}>✓ Yes</button>
-        <button class="btn btn-sm btn-next" id="btn-next" data-code="{safe_code}" {cid_attr} {'disabled' if not graded else ''}>→ Maybe</button>
-        <button class="btn btn-sm btn-reject" id="btn-reject" data-code="{safe_code}" {cid_attr} {'disabled' if not graded else ''}>✗ No</button>
-      </div>
-    </div>
-
     <!-- Session integrity -->
     <div class="panel">
       <div class="section-title">Session Integrity</div>
@@ -2164,20 +2039,6 @@ def _build_candidate_detail_html(code: str, cid: str = "") -> str:
         if (d.ok) {{ location.reload(); }}
         else {{ alert('Error: ' + d.error); }}
       }});
-  }});
-
-  ['btn-hire','btn-next','btn-reject'].forEach(id => {{
-    document.getElementById(id)?.addEventListener('click', function() {{
-      const decision = {{'btn-hire':'yes','btn-next':'maybe','btn-reject':'no'}}[id];
-      const reason = document.getElementById('decision-reason').value.trim();
-      if (!confirm('Record decision: ' + decision.toUpperCase() + '?')) return;
-      fetch('/record-decision', {{method:'POST', headers:{{'Content-Type':'application/json'}},
-        body: JSON.stringify({{code: _code, cid: _cid, decision, reason}})}})
-        .then(r => r.json()).then(d => {{
-          if (d.ok) {{ location.reload(); }}
-          else {{ alert('Error: ' + d.error); }}
-        }});
-    }});
   }});
 
   document.getElementById('btn-toggle-revise')?.addEventListener('click', function() {{
