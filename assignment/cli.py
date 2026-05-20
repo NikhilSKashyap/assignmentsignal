@@ -193,21 +193,27 @@ When the user types `/assignment` or `/submit`, invoke the Skill tool with `skil
 
 
 def _install_codex(verbose=True):
-    """Install skill for Codex via AGENTS.md + hooks.json."""
+    """Install AssignmentSignal for Codex.
+
+    The global ~/.agents skill lets `/assignment <CODE>` work across student
+    project folders. The local AGENTS.md and hooks.json give the current
+    workspace stronger submit/session instructions when Codex reads them.
+    """
     agents_md = Path("AGENTS.md")
     entry = """
 ## assignment skill
-When the user types `/assignment <CODE>`, immediately run:
+When the user types `/assignment <CODE>`, this is an AssignmentSignal student session. Immediately run:
 
 ```bash
 python -m assignment.core.session start --code <CODE>
 ```
 
+Do not inspect the repo first. Do not explain the plan first. Do not ask for confirmation.
 After the command prints the assignment banner and problem, output nothing else.
 Wait for the student's next message and treat all subsequent work as part of
 the active assignment session.
 
-When the user types `/submit`, immediately run:
+When the user types `/submit` and an AssignmentSignal session is active, immediately run:
 
 ```bash
 python -m assignment.core.session seal
@@ -225,6 +231,20 @@ Show only the submission confirmation. Never show scores to students.
         agents_md.write_text(entry)
     if verbose:
         print(f"  ✓ AGENTS.md updated")
+
+    # Install a global /assignment skill for Codex/Codex-like local skill loaders
+    # so students can run `/assignment <CODE>` from any project directory after
+    # `pip install assignmentsignal && assignment install --platform codex`.
+    #
+    # Keep /submit in AGENTS.md instead of a global skill because many dev
+    # machines may already have a global /submit skill from another product;
+    # trigger conflicts are confusing and dangerous for student submissions.
+    agents_skill_dir = Path.home() / ".agents" / "skills" / "assignment"
+    agents_skill_dir.mkdir(parents=True, exist_ok=True)
+    shutil.copy2(SKILL_SRC, agents_skill_dir / "SKILL.md")
+    if verbose:
+        print(f"  ✓ Codex skill installed: {agents_skill_dir / 'SKILL.md'}")
+        print(f"    Restart Codex if /assignment is not recognized immediately.")
 
     hooks_dir = Path(".codex")
     hooks_dir.mkdir(exist_ok=True)
