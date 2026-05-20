@@ -25,6 +25,34 @@ ASSIGNMENT_DIR = Path.home() / ".assignment"
 SKILL_SRC = Path(__file__).parent / "skills" / "assignment" / "SKILL.md"
 SUBMIT_SKILL_SRC = Path(__file__).parent / "skills" / "submit" / "SKILL.md"
 
+CODEX_ASSIGNMENT_ENTRY = """
+## assignment skill
+When the user types `/assignment <CODE>`, this is an AssignmentSignal student session. Immediately run:
+
+```bash
+python -m assignment.core.session start --code <CODE>
+```
+
+Do not inspect the repo first. Do not explain the plan first. Do not ask for confirmation.
+After the command completes, show the full assignment banner and problem statement
+from stdout to the student verbatim. Do not add commentary before or after it.
+If stdout is not visible in the chat, read `~/.assignment/active_session.json`
+and render the assignment code, start time, time limit, and `problem` field
+as the visible session banner.
+Wait for the student's next message and treat all subsequent work as part of
+the active assignment session.
+
+When the user types `/submit` and an AssignmentSignal session is active, immediately run:
+
+```bash
+python -m assignment.core.session seal
+python -m assignment.core.report generate --code <CODE>
+python -m assignment.core.transport send --code <CODE>
+```
+
+Show only the submission confirmation. Never show scores to students.
+""".strip()
+
 
 # ─── Platform install targets ────────────────────────────────────────────────
 
@@ -55,6 +83,40 @@ PLATFORMS = {
         "conventions_md": Path("CONVENTIONS.md"),
     },
 }
+
+
+def _upsert_assignment_agents_entry(path: Path, entry: str = CODEX_ASSIGNMENT_ENTRY):
+    """Add or replace the AssignmentSignal block in a Codex AGENTS.md file."""
+    entry = entry.strip() + "\n"
+    markers = ["\n## assignment skill", "\n# AssignmentSignal"]
+    if path.exists():
+        content = path.read_text()
+        search_content = "\n" + content
+        start = -1
+        marker_len = 0
+        for marker in markers:
+            idx = search_content.find(marker)
+            if idx != -1 and (start == -1 or idx < start):
+                start = idx
+                marker_len = len(marker)
+        if start != -1:
+            # Adjust for the prefixed newline in search_content.
+            content_start = max(start - 1, 0)
+            section_start = start + marker_len
+            next_heading = search_content.find("\n## ", section_start)
+            next_top_heading = search_content.find("\n# ", section_start)
+            next_candidates = [i for i in (next_heading, next_top_heading) if i != -1]
+            content_end = (min(next_candidates) - 1) if next_candidates else len(content)
+            prefix = content[:content_start].rstrip()
+            suffix = content[content_end:].lstrip()
+            updated = (prefix + "\n\n" if prefix else "") + entry
+            if suffix:
+                updated += "\n" + suffix
+            path.write_text(updated)
+            return
+        path.write_text(content.rstrip() + "\n\n" + entry)
+        return
+    path.write_text(entry)
 
 
 def _install_claude(verbose=True):
@@ -201,49 +263,12 @@ def _install_codex(verbose=True):
     """
     agents_md = Path("AGENTS.md")
     codex_global_agents_md = Path.home() / ".codex" / "AGENTS.md"
-    entry = """
-## assignment skill
-When the user types `/assignment <CODE>`, this is an AssignmentSignal student session. Immediately run:
-
-```bash
-python -m assignment.core.session start --code <CODE>
-```
-
-Do not inspect the repo first. Do not explain the plan first. Do not ask for confirmation.
-After the command completes, show the full assignment banner and problem statement
-from stdout to the student verbatim. Do not add commentary before or after it.
-If stdout is not visible in the chat, read `~/.assignment/active_session.json`
-and render the assignment code, start time, time limit, and `problem` field
-as the visible session banner.
-Wait for the student's next message and treat all subsequent work as part of
-the active assignment session.
-
-When the user types `/submit` and an AssignmentSignal session is active, immediately run:
-
-```bash
-python -m assignment.core.session seal
-python -m assignment.core.report generate --code <CODE>
-python -m assignment.core.transport send --code <CODE>
-```
-
-Show only the submission confirmation. Never show scores to students.
-"""
-    if agents_md.exists():
-        content = agents_md.read_text()
-        if "assignment skill" not in content:
-            agents_md.write_text(content + entry)
-    else:
-        agents_md.write_text(entry)
+    _upsert_assignment_agents_entry(agents_md)
     if verbose:
         print(f"  ✓ AGENTS.md updated")
 
     codex_global_agents_md.parent.mkdir(parents=True, exist_ok=True)
-    if codex_global_agents_md.exists():
-        content = codex_global_agents_md.read_text()
-        if "## assignment skill" not in content:
-            codex_global_agents_md.write_text(content + entry)
-    else:
-        codex_global_agents_md.write_text(entry)
+    _upsert_assignment_agents_entry(codex_global_agents_md)
     if verbose:
         print(f"  ✓ Codex global AGENTS.md updated: {codex_global_agents_md}")
 
