@@ -1,7 +1,7 @@
 """
 assignment.core.email_sender
 ----------------------------
-Sends the assignment report to HM + CC list + candidate.
+Sends the assignment report to the professor/TA and configured CC list.
 
 Uses smtplib by default. Falls back gracefully with a manual-send message
 if SMTP is not configured.

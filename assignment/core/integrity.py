@@ -1,7 +1,7 @@
 """
 assignment.core.integrity
 ------------------------
-Verifies the hash chain of a candidate's session (events.jsonl).
+Verifies the hash chain of a student's session (events.jsonl).
 
 The chain works like a linked list:
   event[n].prev_hash == event[n-1].hash

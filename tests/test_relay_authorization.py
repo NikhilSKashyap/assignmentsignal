@@ -9,14 +9,14 @@ def test_student_package_never_exposes_hm_key():
         "rubric": "Private scoring notes",
         "hm_key": "admin-secret",
         "relay_url": "https://relay.example",
-        "submit_token": "candidate-submit-token",
+        "submit_token": "student-submit-token",
         "created_at": 1,
         "problem_hash": "abc123",
     }
 
     public = student_package(payload)
 
-    assert public["submit_token"] == "candidate-submit-token"
+    assert public["submit_token"] == "student-submit-token"
     assert "hm_key" not in public
     assert "rubric" not in public
 

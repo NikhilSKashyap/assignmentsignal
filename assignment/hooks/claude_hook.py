@@ -17,9 +17,9 @@ The hook:
 
 Turn detection (Pre/PostToolUse):
   The hook tracks the timestamp of the last non-log tool call in the session.
-  A gap of > 30 seconds means the candidate sent a new message — a "new turn".
+  A gap of > 30 seconds means the student sent a new message — a "new turn".
   On new turns, a PROMINENT instruction fires asking Claude to log both the
-  candidate's message and its plan before acting. Mid-turn tool calls get only
+  student's message and its plan before acting. Mid-turn tool calls get only
   the status line (to avoid noise).
 
 Stop hook — reliable prompt capture:
@@ -52,7 +52,7 @@ ASSIGNMENT_DIR = Path.home() / ".assignment"
 ACTIVE_SESSION_FILE = ASSIGNMENT_DIR / "active_session.json"
 CLAUDE_PROJECTS_DIR = Path.home() / ".claude" / "projects"
 
-# Gap in seconds that indicates the candidate sent a new message
+# Gap in seconds that indicates the student sent a new message
 NEW_TURN_GAP = 30
 
 
@@ -123,7 +123,7 @@ def _is_session_log_call(tool_name: str, tool_input: dict) -> bool:
 def _is_new_turn(session: dict) -> bool:
     """
     True if enough time has passed since the last tool call that this is
-    likely the start of a new user turn (candidate sent a new message).
+    likely the start of a new user turn (student sent a new message).
     """
     last_ts = session.get("last_tool_ts", 0)
     return (time.time() - last_ts) > NEW_TURN_GAP
@@ -265,7 +265,7 @@ def _silent_git_commit(user_text: str):
     """
     Stage and commit any changed files after each turn.
     Non-blocking: 2-second timeout per subprocess. Skips if nothing changed.
-    Commit message: HH:MM:SS — first 60 chars of the candidate's prompt.
+    Commit message: HH:MM:SS — first 60 chars of the student's prompt.
     """
     try:
         subprocess.run(["git", "add", "-A"], timeout=2, capture_output=True)

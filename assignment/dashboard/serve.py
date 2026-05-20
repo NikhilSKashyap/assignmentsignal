@@ -191,7 +191,7 @@ def _ensure_local_cache(code: str, cid: str = ""):
 def _apply_labels(reports: list[dict]) -> list[dict]:
     """
     Assign display labels based on each report's anonymize setting.
-    - anonymize=True  → 'Candidate A', 'Candidate B'... with a Reveal button
+    - anonymize=True  → 'Student A', 'Student B'... with a Reveal button
     - anonymize=False → assignment code shown directly, no Reveal button needed
     """
     result = []
@@ -199,7 +199,7 @@ def _apply_labels(reports: list[dict]) -> list[dict]:
     for r in reports:
         labeled = dict(r)
         if r.get("_anonymize", True):
-            labeled["_display_label"] = f"Candidate {chr(65 + anon_counter)}"
+                labeled["_display_label"] = f"Student {chr(65 + anon_counter)}"
             labeled["_show_reveal"] = True
             anon_counter += 1
         else:
@@ -844,7 +844,7 @@ def _build_dashboard_html(
 
   // ── Row references ─────────────────────────────────────────────────────────
   const tbody = document.getElementById('candidates-tbody');
-  if (!tbody) return; // No candidates — nothing to do
+  if (!tbody) return; // No students — nothing to do
 
   const allRows = Array.from(tbody.querySelectorAll('tr'));
 
@@ -946,7 +946,7 @@ def _build_dashboard_html(
 
     btnPrev.disabled  = currentPage <= 1;
     btnNext.disabled  = currentPage >= totalPages;
-    pageLabel.textContent = `Page ${{currentPage}} of ${{totalPages}} (${{visibleRows.length}} candidates)`;
+    pageLabel.textContent = `Page ${{currentPage}} of ${{totalPages}} (${{visibleRows.length}} students)`;
 
     // Only show pagination bar when needed
     paginationBar.style.display = visibleRows.length > PAGE_SIZE ? 'flex' : 'none';
@@ -1656,7 +1656,7 @@ def _build_candidate_detail_html(code: str, cid: str = "") -> str:
     comments_html = ""
     for c in raw_comments:
         ts = escape(c.get("created_at") or c.get("timestamp_iso", ""))
-        author = escape(c.get("author", "HM"))
+        author = escape(c.get("author", "Instructor"))
         text = escape(c.get("text", ""))
         comments_html += f"""
         <div class="comment">
@@ -1775,7 +1775,7 @@ def _build_candidate_detail_html(code: str, cid: str = "") -> str:
     # Flags panel
     flags_panel_html = _build_flags_panel_html(session_flags)
 
-    # Analysis panel — Claude's rubric-based grading analysis (instructor-only, left column)
+    # Analysis panel — AI rubric-based grading analysis (instructor-only, left column)
     analysis_panel_html = ""
     if graded and current_grading:
         an_summary    = escape(current_grading.get("summary", ""))
@@ -1843,7 +1843,7 @@ def _build_candidate_detail_html(code: str, cid: str = "") -> str:
 
         analysis_panel_html = (
             f'<div class="panel" id="analysis-panel">'
-            f'<div class="section-title">Claude\'s Analysis '
+            f'<div class="section-title">AI Analysis '
             f'<span style="color:#3f3f46;font-size:10px;font-weight:400">· instructor-only · rubric-based</span></div>'
             + (f'<div style="font-size:13px;color:#a1a1aa;margin-bottom:16px;line-height:1.6">{an_summary}</div>'
                if an_summary else '')

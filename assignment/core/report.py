@@ -2,7 +2,7 @@
 assignment.core.report
 ---------------------
 Generates the self-contained HTML report and machine-readable JSON
-from a sealed session. The HTML is the email attachment HMs open.
+from a sealed session. The HTML is the review artifact professors and TAs open.
 """
 
 import argparse
@@ -130,7 +130,7 @@ def _event_to_html_row(event: dict) -> str:
         return f"""
         <div class="event event-user">
           <span class="event-time">{ts}</span>
-          <span class="event-type">Candidate</span>
+          <span class="event-type">Student</span>
           <div class="event-detail">{text}</div>
         </div>"""
 
@@ -149,7 +149,7 @@ def _event_to_html_row(event: dict) -> str:
         return f"""
         <div class="event event-assistant">
           <span class="event-time">{ts}</span>
-          <span class="event-type">Claude</span>
+          <span class="event-type">Assistant</span>
           <div class="event-detail">{text}</div>
         </div>"""
 

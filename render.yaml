@@ -1,0 +1,25 @@
+services:
+  - type: web
+    name: assignmentsignal-relay
+    runtime: docker
+    plan: starter
+    healthCheckPath: /healthz
+    disk:
+      name: assignmentsignal-data
+      mountPath: /data
+      sizeGB: 1
+    envVars:
+      - key: RELAY_DATA_DIR
+        value: /data
+      - key: RELAY_API_KEY
+        sync: false
+      - key: RELAY_BASE_URL
+        sync: false
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: GRADING_MODEL
+        value: gpt-5.5
+      - key: GITHUB_CLIENT_ID
+        sync: false
+      - key: GITHUB_CLIENT_SECRET
+        sync: false

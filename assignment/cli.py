@@ -4,7 +4,7 @@ assignment CLI
 Entry point for the `assignment` command.
 
 Usage:
-  assignment install              Install skill + hooks for Claude Code
+  assignment install              Install skill + hooks for an AI coding assistant
   assignment install --platform codex
   assignment uninstall
   assignment configure-email      Set up SMTP credentials
@@ -401,7 +401,7 @@ thought process through AI assistant interaction.
 
     if verbose:
         print(f"\n  ⚠  Aider does not support lifecycle hooks.")
-        print(f"     Activity capture is limited — candidate prompts and tool calls")
+        print(f"     Activity capture is limited — student prompts and tool calls")
         print(f"     won't be logged automatically. For full capture, use Claude Code.")
 
 
@@ -443,7 +443,7 @@ def cmd_install(args):
             print()
             print(f"\n✓ assignmentsignal installed.\n")
             print(f"  Professor/TA: run 'assignment dashboard' to create assignments and review submissions")
-            print(f"  Student:      open Claude Code and type /assignment <CODE>\n")
+            print(f"  Student:      open {PLATFORMS[platform_name]['name']} and type /assignment <CODE>\n")
             return
 
     print("  To skip the name/email prompt during assignments, we'll save your identity now.")
@@ -464,7 +464,7 @@ def cmd_install(args):
 
     print(f"\n✓ assignmentsignal installed.\n")
     print(f"  Professor/TA: run 'assignment dashboard' to create assignments and review submissions")
-    print(f"  Student:      open Claude Code and type /assignment <CODE>\n")
+    print(f"  Student:      open {PLATFORMS[platform_name]['name']} and type /assignment <CODE>\n")
 
 
 def cmd_uninstall(args):
@@ -508,7 +508,7 @@ def cmd_configure_relay(args):
 
     Three options:
       1. Hosted relay  — relay.assignmentsignal.dev (shared, free to try)
-      2. Your own relay — Railway / Render / self-hosted (private, ~$5/mo)
+      2. Your own relay — Render / self-hosted (private, ~$5/mo)
       3. Email only    — SMTP, no server needed (free, manual workflow)
     """
     config_file = Path.home() / ".assignment" / "config.json"
@@ -527,7 +527,7 @@ def cmd_configure_relay(args):
 
     print("\nHow do you want to deliver assignment sessions?")
     print("─" * 50)
-    print("  1. Your own relay  Railway / Render / self-hosted — private, ~$5/mo")
+    print("  1. Your own relay  Render / self-hosted — private, ~$5/mo")
     print("  2. Email only      SMTP — no server, reports arrive by email")
     print()
 
@@ -537,7 +537,7 @@ def cmd_configure_relay(args):
     if choice == "1":
         # ── Self-hosted / own relay ───────────────────────────────────────────
         print()
-        print("  Enter your relay URL (Railway / Render / your own server).")
+        print("  Enter your relay URL (Render / your own server).")
         print()
         prompt = f"Relay URL [{current_url}]: " if current_url else "Relay URL: "
         relay_url = input(prompt).strip().rstrip("/") or current_url
@@ -564,7 +564,7 @@ def cmd_configure_relay(args):
         if current_hm_key and current_url == relay_url:
             key_preview = current_hm_key[:8] + "..."
             print(f"\n✓ Relay configured: {relay_url}")
-            print(f"  hm_key: {key_preview} (already registered)\n")
+            print(f"  Reviewer key: {key_preview} (already registered)\n")
         else:
             print(f"\n  Registering with relay...")
             _register_relay(relay_url, config, config_file)
@@ -594,7 +594,7 @@ def _register_relay(relay_url: str, config: dict, config_file: Path):
         set_hm_key(hm_key)
         key_preview = hm_key[:8] + "..."
         print(f"✓ Relay configured: {relay_url}")
-        print(f"  hm_key: {key_preview} — your sessions are private to you")
+        print(f"  Reviewer key: {key_preview} — your sessions are private to you")
         print(f"  Run 'assignment dashboard' to review students\n")
     except Exception as e:
         print(f"  ⚠ Could not register: {e}")
@@ -758,8 +758,8 @@ def cmd_configure_github_app(args):
     if relay_base:
         print(f"  RELAY_BASE_URL={relay_base}")
     print()
-    print("  Railway / Render: add them in the Variables / Environment tab.")
-    print("  Docker:           add them to your docker-compose.yml or .env file.")
+    print("  Render: add them in the Environment tab.")
+    print("  Docker: add them to your docker-compose.yml or .env file.")
 
     # Also save to local config for self-hosted single-machine deployments
     config_file = Path.home() / ".assignment" / "config.json"

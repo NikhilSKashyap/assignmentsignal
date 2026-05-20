@@ -1,7 +1,7 @@
 """
 assignment.core.setup
 --------------------
-Handles HM assignment creation: encodes the assignment package into a
+Handles professor/TA assignment creation: encodes the assignment package into a
 signed token, stores it (locally or via relay), and returns the assignment code.
 """
 
@@ -104,7 +104,7 @@ def create_assignment(
         "audit_email": audit_email,
         "created_at": created_at,
         "sharing": sharing_config,
-        # Integrity: hash of the problem + rubric so candidates can't claim
+        # Integrity: hash of the problem + rubric so students can't claim
         # the problem was different
         "problem_hash": hashlib.sha256(problem.encode()).hexdigest()[:16],
         # Transport: relay config flows instructor → package → student.
@@ -115,7 +115,7 @@ def create_assignment(
         "auto_grade": True,
     }
 
-    # Save locally on HM's machine
+    # Save locally on the professor/TA machine
     assignment_file = CREATED_DIR / f"{code}.json"
     assignment_file.write_text(json.dumps(payload, indent=2))
 
@@ -143,7 +143,7 @@ def load_assignment(code: str) -> dict | None:
     Checks local storage first (for student who received the full token),
     then falls back to relay lookup.
     """
-    # 1. Check local created/ (HM running on same machine — dev/testing)
+    # 1. Check local created/ (professor/TA running on same machine — dev/testing)
     local_file = CREATED_DIR / f"{code}.json"
     if local_file.exists():
         return json.loads(local_file.read_text())

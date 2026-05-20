@@ -1,10 +1,10 @@
 """
 assignment.core.decisions
 ------------------------
-Comments and hiring decisions for a candidate.
+Comments and review decisions for a student.
 
 Comments:   append-only, timestamped, stored in comments.jsonl
-Decisions:  single record per candidate (hire / next_round / reject + reason)
+Decisions:  single record per student (yes / maybe / no + reason)
 """
 
 import json
@@ -17,9 +17,9 @@ SESSIONS_DIR = ASSIGNMENT_DIR / "sessions"
 
 # ─── Comments ─────────────────────────────────────────────────────────────────
 
-def add_comment(code: str, text: str, author: str = "HM") -> dict:
+def add_comment(code: str, text: str, author: str = "Instructor") -> dict:
     """
-    Append a comment to the candidate's profile.
+    Append a comment to the student's profile.
     Comments are never editable or deletable — append-only.
     Returns the comment record.
     """
@@ -43,7 +43,7 @@ def add_comment(code: str, text: str, author: str = "HM") -> dict:
 
 
 def get_comments(code: str) -> list[dict]:
-    """Return all comments for a candidate, oldest first."""
+    """Return all comments for a student, oldest first."""
     comment_file = SESSIONS_DIR / code / "comments.jsonl"
     if not comment_file.exists():
         return []
@@ -67,10 +67,10 @@ def record_decision(
     code: str,
     decision: str,
     reason: str = "",
-    author: str = "HM",
+    author: str = "Instructor",
 ) -> dict:
     """
-    Record a hiring decision for a candidate.
+    Record a review decision for a student.
     Overwrites any previous decision.
     """
     decision = decision.strip().lower()
@@ -93,7 +93,7 @@ def record_decision(
 
 
 def get_decision(code: str) -> dict | None:
-    """Return the current decision for a candidate, or None."""
+    """Return the current decision for a student, or None."""
     decision_file = SESSIONS_DIR / code / "decision.json"
     if decision_file.exists():
         try:
@@ -106,7 +106,7 @@ def get_decision(code: str) -> dict | None:
 # ─── Grade helpers used by dashboard ─────────────────────────────────────────
 
 def is_graded(code: str) -> bool:
-    """Return True if a grade has been recorded for this candidate."""
+    """Return True if a grade has been recorded for this student."""
     grading_file = SESSIONS_DIR / code / "grading.json"
     if not grading_file.exists():
         return False

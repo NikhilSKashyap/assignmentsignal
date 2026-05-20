@@ -510,7 +510,7 @@ def start_session(code: str, candidate_email: str | None = None, candidate_name:
             else:
                 print(f" ⚠  (repo creation failed — session continues)")
 
-    # Resolve candidate identity — GitHub > args > local config > assignment package
+    # Resolve student identity — GitHub > args > local config > assignment package
     _cfg = {}
     if CONFIG_FILE.exists():
         try:
@@ -564,7 +564,7 @@ def start_session(code: str, candidate_email: str | None = None, candidate_name:
     _save_active_session(session_meta)
 
     # Clear any stale session data from a previous run with the same code on
-    # this machine.  Each candidate run must start fresh.
+    # this machine. Each student run must start fresh.
     session_dir = SESSIONS_DIR / code
     session_dir.mkdir(parents=True, exist_ok=True)
     ts_suffix = str(int(time.time()))

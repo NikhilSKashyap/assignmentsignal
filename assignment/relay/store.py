@@ -37,12 +37,12 @@ class StoreError(Exception):
 
 
 def make_cid(email: str) -> str:
-    """Deterministic, URL-safe, anonymous candidate ID from email."""
+    """Deterministic, URL-safe, anonymous student ID from email."""
     return hashlib.sha256(email.lower().strip().encode()).hexdigest()[:12]
 
 
 def make_github_cid(github_id: int | str) -> str:
-    """Deterministic, anonymous candidate ID from GitHub user ID."""
+    """Deterministic, anonymous student ID from GitHub user ID."""
     return hashlib.sha256(f"github:{github_id}".encode()).hexdigest()[:12]
 
 
@@ -120,7 +120,7 @@ class SessionStore:
     def lookup_hm_for_code(self, code: str) -> str | None:
         return self._load_code_index().get(code)
 
-    # ─── HM registration ──────────────────────────────────────────────────────
+    # ─── Reviewer registration ────────────────────────────────────────────────
 
     def hm_exists(self, hm_key: str) -> bool:
         return (self._hm_dir(hm_key) / "info.json").exists()
@@ -190,7 +190,7 @@ class SessionStore:
         return {k: v for k, v in full.items() if k in self._CANDIDATE_SAFE_FIELDS}
 
     def verify_submit_token(self, hm_key: str, code: str, submit_token: str) -> bool:
-        """Return True when a candidate submit token matches the assignment code."""
+        """Return True when a student submit token matches the assignment code."""
         if not submit_token:
             return False
         full = self._ensure_submit_token(hm_key, code)
@@ -226,11 +226,11 @@ class SessionStore:
         return {"code": code, "rubric_updated": True}
 
     def get_assignment_config(self, hm_key: str, code: str) -> dict | None:
-        """Fetch an assignment package by hm_key + code (HM-scoped). Returns None if not found."""
+        """Fetch an assignment package by hm_key + code (reviewer-scoped). Returns None if not found."""
         return self._load_json(self._assignments_dir(hm_key) / f"{code}.json")
 
     def list_assignments(self, hm_key: str) -> list[dict]:
-        """List all assignments for an HM with candidate submission counts."""
+        """List all assignments for a reviewer with student submission counts."""
         assignments_dir = self._assignments_dir(hm_key)
         sessions_dir = self._sessions_dir(hm_key)
         if not assignments_dir.exists():
@@ -435,7 +435,7 @@ class SessionStore:
         f = self._session_dir(hm_key, code, cid) / filename
         return f.read_bytes() if f.exists() else None
 
-    # ─── HM actions ───────────────────────────────────────────────────────────
+    # ─── Reviewer actions ─────────────────────────────────────────────────────
 
     def is_graded(self, hm_key: str, code: str, cid: str) -> bool:
         return self._load_meta(hm_key, code, cid).get("graded", False)
@@ -515,7 +515,7 @@ class SessionStore:
     # ─── sharing config ───────────────────────────────────────────────────────
 
     def _sharing_override_path(self, hm_key: str, code: str) -> Path:
-        """HM can override the assignment's default sharing config per code."""
+        """Reviewer can override the assignment's default sharing config per code."""
         return self._hm_dir(hm_key) / "sharing" / f"{code}.json"
 
     def get_sharing_config(self, hm_key: str, code: str) -> dict:
@@ -537,7 +537,7 @@ class SessionStore:
         return {"score": "none"}
 
     def save_sharing_config(self, hm_key: str, code: str, config: dict) -> dict:
-        """Persist an HM sharing override for this code."""
+        """Persist a reviewer sharing override for this code."""
         override_path = self._sharing_override_path(hm_key, code)
         override_path.parent.mkdir(parents=True, exist_ok=True)
         self._write_atomic(override_path, json.dumps(config, indent=2))
@@ -545,7 +545,7 @@ class SessionStore:
 
     def get_score_response(self, hm_key: str, code: str, cid: str) -> dict | None:
         """
-        Build the public score response for a candidate, filtered by sharing config.
+        Build the public score response for a student, filtered by sharing config.
         Returns None if sharing.score == "none" or the session is not yet graded.
         """
         if not self.session_exists(hm_key, code, cid):
@@ -568,8 +568,8 @@ class SessionStore:
             result["standout_moments"] = grading.get("standout_moments", [])
             result["concerns"]         = grading.get("concerns", [])
 
-        # Debrief is always included when available — it's Claude's analysis,
-        # not the HM's evaluation, so it's not an HM toggle.
+        # Debrief is always included when available — it's AI analysis,
+        # not the professor/TA evaluation, so it's not a reviewer toggle.
         debrief_bytes = self.get_file(hm_key, code, cid, "debrief.txt")
         if debrief_bytes:
             result["debrief"] = debrief_bytes.decode()

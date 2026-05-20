@@ -65,7 +65,7 @@ class TestBuildTranscript:
             {"type": "user_prompt", "timestamp": 1120.0, "payload": {"text": "write a rate limiter"}},
         ])
         result = self._build()
-        assert "CANDIDATE:" in result
+        assert "STUDENT:" in result
         assert "rate limiter" in result
         assert "T+2.0min" in result
 
@@ -132,7 +132,7 @@ class TestBuildTranscript:
         ])
         result = self._build()
         # The x's should be truncated to 300
-        candidate_line = [l for l in result.splitlines() if "CANDIDATE:" in l][0]
+        candidate_line = [l for l in result.splitlines() if "STUDENT:" in l][0]
         # Count x's in that line — should be around 300, not 500
         x_count = candidate_line.count("x")
         assert x_count <= 310  # some slack for formatting

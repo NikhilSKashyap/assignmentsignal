@@ -27,7 +27,7 @@ assignment install
 assignment dashboard
 ```
 
-The dashboard handles setup, assignment creation, grading, review, comments, decisions, and exports.
+The dashboard handles setup, assignment creation, grading, review, comments, and exports.
 
 For v0, the relay credentials are intentionally blank in local config and Docker defaults. A separate AssignmentSignal relay should be created later and configured with:
 

@@ -331,7 +331,7 @@ def _flag_diff_event_mismatch(events: list[dict], manifest: dict) -> list[dict]:
     """
     Cross-check git diff size against recorded Write/Edit tool calls.
     If the diff shows significant code changes but the event log has very few
-    file-modifying tool calls, the candidate likely worked outside the AI
+    file-modifying tool calls, the student likely worked outside the AI
     assistant or disabled hooks during coding.
 
     Uses git_diff_summary from manifest ("N lines changed") and counts
@@ -383,7 +383,7 @@ def _flag_diff_event_mismatch(events: list[dict], manifest: dict) -> list[dict]:
             "detail":   (
                 f"Git diff shows {diff_lines} lines changed but only "
                 f"{write_edit_count} Write/Edit tool call(s) recorded. "
-                "Candidate may have worked outside the AI assistant or "
+                "Student may have worked outside the AI assistant or "
                 "hooks were disabled during coding."
             ),
         }]
@@ -446,7 +446,7 @@ def _flag_commit_event_mismatch(events: list[dict], manifest: dict) -> list[dict
 
     Direction 1 — session commits exist but zero Write/Edit tool calls:
       Code was committed but no file writes were recorded through the AI
-      assistant. Candidate likely wrote code directly outside the AI tool.
+      assistant. Student likely wrote code directly outside the AI tool.
 
     Direction 2 — Write/Edit tool calls exist but no session commits:
       AI was used to write files but no per-prompt commits were created.
@@ -481,7 +481,7 @@ def _flag_commit_event_mismatch(events: list[dict], manifest: dict) -> list[dict
             "label":    "Code committed outside AI assistant",
             "detail":   (
                 f"{len(session_commits)} commit(s) recorded but zero Write/Edit "
-                "tool calls in the session log. Candidate likely wrote code "
+                "tool calls in the session log. Student likely wrote code "
                 "directly outside the AI assistant."
             ),
         }]

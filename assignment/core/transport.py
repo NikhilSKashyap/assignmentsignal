@@ -12,11 +12,11 @@ Config-driven — no code changes needed to switch:
 
 Public surface:
   get_transport()                    → returns the right Transport for current config
-  transport.send(code)               → candidate: deliver sealed session to HM
-  transport.list_sessions()          → HM dashboard: list available sessions
-  transport.get_session(code, cid)   → HM dashboard: fetch one session detail
-  transport.post_action(...)         → HM dashboard: grade / reveal / comment / decision
-  transport.get_assignment(code)      → candidate: fetch assignment package from relay
+  transport.send(code)               → student: deliver sealed session to professor/TA
+  transport.list_sessions()          → professor/TA dashboard: list available sessions
+  transport.get_session(code, cid)   → professor/TA dashboard: fetch one session detail
+  transport.post_action(...)         → professor/TA dashboard: grade / reveal / comment
+  transport.get_assignment(code)      → student: fetch assignment package from relay
   RelayTransport.register_hm(url)    → static: register and get hm_key
 
 All relay calls use stdlib urllib only — no external dependencies.
@@ -84,26 +84,26 @@ class Transport(ABC):
 
     @abstractmethod
     def send(self, code: str) -> bool:
-        """Candidate-side: deliver the sealed session. Returns True on success."""
+        """Student-side: deliver the sealed session. Returns True on success."""
 
     @abstractmethod
     def list_sessions(self) -> list[dict]:
-        """HM dashboard: return flat list of session summaries."""
+        """Professor/TA dashboard: return flat list of session summaries."""
 
     @abstractmethod
     def get_session(self, code: str, cid: str | None = None) -> dict | None:
-        """HM dashboard: return full session detail, or None if not found."""
+        """Professor/TA dashboard: return full session detail, or None if not found."""
 
     @abstractmethod
     def post_action(self, code: str, action: str, payload: dict, cid: str | None = None) -> dict:
-        """HM dashboard: POST a state-changing action."""
+        """Professor/TA dashboard: POST a state-changing action."""
 
     def get_assignment(self, code: str) -> dict | None:
-        """Candidate: fetch assignment package by code. None if not found."""
+        """Student: fetch assignment package by code. None if not found."""
         return None
 
     def get_score(self, code: str, cid: str) -> dict | None:
-        """Candidate: fetch their own score. None if not available."""
+        """Student: fetch their own score. None if not available."""
         return None
 
 
@@ -171,10 +171,10 @@ class RelayTransport(Transport):
     """
     Multi-tenant relay transport.
 
-    Auth: hm_key is the per-HM bearer token (from POST /register).
+    Auth: hm_key is the per-reviewer bearer token (from POST /register).
     Fallback: relay_api_key used if hm_key not set (self-hosted operator access).
 
-    Candidate submit falls back to EmailTransport if relay is unreachable.
+    Student submit falls back to EmailTransport if relay is unreachable.
     """
 
     def __init__(self, relay_url: str, hm_key: str = "", api_key: str = ""):
@@ -266,7 +266,7 @@ class RelayTransport(Transport):
         result = self._request("POST", "/assignments", body={"code": code, "payload_b64": payload_b64})
         return result if isinstance(result, dict) else {}
 
-    # ── Candidate submit ──────────────────────────────────────────────────────
+    # ── Student submit ────────────────────────────────────────────────────────
 
     def send(self, code: str) -> bool:
         session_dir = SESSIONS_DIR / code
@@ -329,11 +329,11 @@ class RelayTransport(Transport):
             print(f"  Falling back to email...")
             return EmailTransport().send(code)
 
-    # ── HM dashboard ──────────────────────────────────────────────────────────
+    # ── Professor/TA dashboard ────────────────────────────────────────────────
 
     def list_sessions(self) -> list[dict]:
         """
-        Returns a flat list of candidate summaries for the dashboard.
+        Returns a flat list of student summaries for the dashboard.
         Each entry includes 'code' and 'cid' alongside session metadata.
         """
         try:
@@ -359,7 +359,7 @@ class RelayTransport(Transport):
         if cid:
             path = f"/sessions/{code}/{cid}"
         else:
-            # No cid: list candidates for this code, return first
+            # No cid: list students for this code, return first
             path = f"/sessions/{code}"
         try:
             result = self._request("GET", path)
@@ -384,7 +384,7 @@ class RelayTransport(Transport):
             raise TransportError(f"Action '{action}' failed: {e}")
 
     def get_score(self, code: str, cid: str) -> dict | None:
-        """Candidate: fetch their own score. Open route — no auth header needed."""
+        """Student: fetch their own score. Open route — no auth header needed."""
         url = f"{self.relay_url}/sessions/{code}/{cid}/score"
         req = urllib.request.Request(url, method="GET")
         try:

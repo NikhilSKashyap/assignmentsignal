@@ -35,7 +35,7 @@ from assignment.relay.store import SessionStore, StoreError, make_cid, make_gith
 from assignment.core.grader import DEFAULT_GRADING_MODEL
 
 # ─── Environment variables ────────────────────────────────────────────────────
-# RELAY_API_KEY     — HM registration key (required in production)
+# RELAY_API_KEY     — reviewer registration key (required in production)
 # GRADING_API_KEY / OPENAI_API_KEY — OpenAI API key for auto-grading (optional)
 # GRADING_MODEL     — Model for auto-grading (default: gpt-5.5)
 # GITHUB_CLIENT_ID  — GitHub OAuth app client ID (optional)
@@ -180,7 +180,7 @@ class RelayHandler(BaseHTTPRequestHandler):
         return None
 
     def _auth_matches_hm(self, hm_key: str) -> bool:
-        """True when the bearer token is this HM's key or the master relay key."""
+        """True when the bearer token is this reviewer's key or the master relay key."""
         token = self._bearer()
         if not token:
             return False
@@ -248,7 +248,7 @@ class RelayHandler(BaseHTTPRequestHandler):
         if len(parts) == 2 and parts[0] == "assignments":
             return self._get_assignment(parts[1])
 
-        # Score endpoint — open (candidate fetches own score by knowing their cid)
+        # Score endpoint — open (student fetches own score by knowing their cid)
         if len(parts) == 4 and parts[0] == "sessions" and parts[3] == "score":
             return self._get_score_open(parts[1], parts[2])
 
@@ -284,8 +284,8 @@ class RelayHandler(BaseHTTPRequestHandler):
         if parts == ["register"]:
             return self._post_register()
 
-        # Candidate submissions use a per-assignment submit_token in the body.
-        # HM/admin bearer auth is still accepted for trusted server-side flows.
+        # Student submissions use a per-assignment submit_token in the body.
+        # Professor/TA admin bearer auth is still accepted for trusted server-side flows.
         if parts == ["sessions"]:
             return self._post_session()
 
@@ -326,7 +326,7 @@ class RelayHandler(BaseHTTPRequestHandler):
         hm_key = _store.lookup_hm_for_code(code)
         if hm_key is None:
             return self._error(404, "not_found", f"No assignment for code {code}.")
-        # Return only candidate-safe fields — rubric never leaves the relay
+        # Return only student-safe fields — rubric never leaves the relay
         candidate_pkg = _store.get_assignment_candidate(hm_key, code)
         if candidate_pkg is None:
             return self._error(404, "not_found", f"No assignment for code {code}.")
@@ -344,7 +344,7 @@ class RelayHandler(BaseHTTPRequestHandler):
     def _get_github_start(self):
         """
         GET /auth/github/start?code=ASG-4829-XK
-        Returns {url, state} for the candidate CLI to open in a browser.
+        Returns {url, state} for the student CLI to open in a browser.
         Returns 501 if GitHub OAuth is not configured on this relay.
         """
         if not _github_configured():
@@ -375,7 +375,7 @@ class RelayHandler(BaseHTTPRequestHandler):
     def _get_github_callback(self):
         """
         GET /auth/github/callback?code=<oauth_code>&state=<state>
-        GitHub redirects here after the candidate authorizes.
+        GitHub redirects here after the student authorizes.
         Exchanges the code, fetches the profile, stores the result, returns HTML.
         """
         params = parse_qs(urlparse(self.path).query)
@@ -440,7 +440,7 @@ class RelayHandler(BaseHTTPRequestHandler):
     def _get_github_poll(self):
         """
         GET /auth/github/poll?state=<state>
-        Candidate CLI polls this until status == "complete" or a terminal state.
+        Student CLI polls this until status == "complete" or a terminal state.
         """
         params = parse_qs(urlparse(self.path).query)
         state  = params.get("state", [""])[0]
@@ -577,11 +577,11 @@ class RelayHandler(BaseHTTPRequestHandler):
         if not code or not candidate_email:
             return self._error(400, "invalid_payload", "Missing 'code' or 'candidate_email'.")
 
-        # Validate code belongs to this HM
+        # Validate code belongs to this professor/TA account
         owner = _store.lookup_hm_for_code(code)
         if owner is None:
             return self._error(404, "assignment_not_found",
-                               f"Assignment {code} not registered. HM must push /assignments first.")
+                               f"Assignment {code} not registered. Professor/TA must push /assignments first.")
         hm_key = owner
         if not self._auth_matches_hm(owner):
             submit_token = body.get("submit_token", "").strip()
@@ -613,7 +613,7 @@ class RelayHandler(BaseHTTPRequestHandler):
             github_id = state_data.get("github_id")
             # Re-submissions from the same session (e.g. debrief update) are allowed —
             # the session_token is tied to this github_id at OAuth time (verified above),
-            # so this is the same candidate updating their session, not a new submission.
+            # so this is the same student updating their session, not a new submission.
             # Cross-account duplicates are already blocked at OAuth/session-start time.
             github_identity = {
                 "github_id":       github_id,
