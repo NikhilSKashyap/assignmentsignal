@@ -4,11 +4,6 @@ AssignmentSignal helps professors and TAs see how students worked through an ass
 
 It is the academic sibling of InterviewSignal: one assignment code, many students, private GitHub repos, captured AI-assistant workflow, and a professor/TA dashboard for review.
 
-## Contributors
-
-- Nikhil S Kashyap
-- Codex
-
 ## v0 Scope
 
 - Professors or TAs create assignments from the dashboard.
