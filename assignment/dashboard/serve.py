@@ -199,7 +199,7 @@ def _apply_labels(reports: list[dict]) -> list[dict]:
     for r in reports:
         labeled = dict(r)
         if r.get("_anonymize", True):
-                labeled["_display_label"] = f"Student {chr(65 + anon_counter)}"
+            labeled["_display_label"] = f"Student {chr(65 + anon_counter)}"
             labeled["_show_reveal"] = True
             anon_counter += 1
         else:
