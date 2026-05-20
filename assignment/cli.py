@@ -197,9 +197,25 @@ def _install_codex(verbose=True):
     agents_md = Path("AGENTS.md")
     entry = """
 ## assignment skill
-Type `$assignment hm` to set up an assignment as a professor or TA.
-Type `$assignment <CODE>` to start a student session.
-Type `$submit` to end the session and send the report.
+When the user types `/assignment <CODE>`, immediately run:
+
+```bash
+python -m assignment.core.session start --code <CODE>
+```
+
+After the command prints the assignment banner and problem, output nothing else.
+Wait for the student's next message and treat all subsequent work as part of
+the active assignment session.
+
+When the user types `/submit`, immediately run:
+
+```bash
+python -m assignment.core.session seal
+python -m assignment.core.report generate --code <CODE>
+python -m assignment.core.transport send --code <CODE>
+```
+
+Show only the submission confirmation. Never show scores to students.
 """
     if agents_md.exists():
         content = agents_md.read_text()
