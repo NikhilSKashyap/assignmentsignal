@@ -426,18 +426,18 @@ def _build_wizard_screen1_html(error: str = "") -> str:
   <div class="wizard-card">
     <div class="wizard-step">Step 1 of 3</div>
     <h2>Welcome to assignmentsignal</h2>
-    <p>You need a relay to collect student submissions. Deploy your own (~$5/mo on Railway) or self-host.</p>
+    <p>You need a relay to collect student submissions. Deploy your own on Render or self-host.</p>
     {err}
     <form method="POST" action="/setup/relay">
       <label for="relay_url">Relay URL</label>
       <input id="relay_url" name="relay_url" type="url" class="wizard-field"
-             placeholder="https://myrelay.up.railway.app" required autofocus>
+             placeholder="https://assignmentsignal-relay.onrender.com" required autofocus>
       <div class="wizard-btns">
         <button type="submit" class="btn btn-primary">Connect →</button>
       </div>
     </form>
     <p class="wizard-hint">Don't have a relay yet?
-      <a href="https://railway.app" target="_blank">Deploy on Railway →</a>
+      <a href="https://render.com" target="_blank">Deploy on Render →</a>
     </p>
   </div>
 </div>
